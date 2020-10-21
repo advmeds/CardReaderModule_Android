@@ -1,0 +1,131 @@
+package com.advmeds.cardreadermodule.acs.usb.decoder
+
+import com.acs.smartcard.Reader
+import com.advmeds.cardreadermodule.acs.ACSUtils.Companion.toHexString
+import com.advmeds.cardreadermodule.acs.AcsResponseModel
+import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
+import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
+import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
+import java.nio.charset.Charset
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.*
+
+public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
+//     暫時不接NFC
+//    private val NFC_CARD_NO_APDU: ByteArray? = byteArrayOf(
+//        0xFF.toByte(), 0xCA.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()
+//    )
+//    private val NFC_READ_BLOCK_APDU = byteArrayOf(
+//        0xFF.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x10.toByte()
+//    )
+
+    private val SELECT_APDU = byteArrayOf(
+        0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
+        0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(), 0x01.toByte(),
+        0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+        0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x11.toByte(),
+        0x00.toByte()
+    )
+    private val READ_PROFILE_APDU = byteArrayOf(
+        0x00.toByte(), 0xca.toByte(), 0x11.toByte(), 0x00.toByte(), 0x02.toByte(),
+        0x00.toByte(), 0x00.toByte()
+    )
+
+    override fun decode(reader: Reader): AcsResponseModel? {
+        var responseModel: AcsResponseModel? = null
+
+        runCatching {
+            val model = AcsResponseModel()
+
+            val activeProtocol = reader.setProtocol(
+                AcsUsbDevice.SMART_CARD_SLOT,
+                Reader.PROTOCOL_T1
+            )
+
+            if (activeProtocol != Reader.PROTOCOL_T1) { // Set protocol error.
+                return@runCatching model
+            }
+
+            var response = ByteArray(300)
+
+            reader.transmit(
+                AcsUsbDevice.SMART_CARD_SLOT,
+                SELECT_APDU,
+                SELECT_APDU.size,
+                response,
+                response.size
+            )
+
+            var responseString = response.toHexString()
+
+            if (!responseString.startsWith("90 00")) { // Transmit select error.
+                return@runCatching model
+            }
+
+            // Transmit: Read profile APDU
+            response = ByteArray(300)
+
+            reader.transmit(
+                AcsUsbDevice.SMART_CARD_SLOT,
+                READ_PROFILE_APDU,
+                READ_PROFILE_APDU.size,
+                response,
+                response.size
+            )
+
+            responseString = response.toHexString()
+
+            if (responseString.startsWith("90 00")) { // Transmit read profile fail 1.
+                return@runCatching model
+            }
+
+            val responseTmp = responseString.split("90 00")
+
+            if (responseTmp.size > 1) {
+                val cardNumber = String(response.copyOfRange(0, 12))
+                val cardName = String(response.copyOfRange(12, 32), Charset.forName("Big5")).trim()
+                val cardID = String(response.copyOfRange(32, 42))
+                val cardBirth = String(response.copyOfRange(42, 49))
+                val cardGender = String(response.copyOfRange(49, 50))
+                val cardIssuedDate = String(response.copyOfRange(50, 57))
+
+                val sdf = SimpleDateFormat("yyyy/MM/dd")
+
+                val birthWest = 1911 + cardBirth.substring(0..2).toInt()
+                val issuedWest = 1911 + cardIssuedDate.substring(0..2).toInt()
+
+                var birthday: Date? = null
+                var issuedDate: Date? = null
+
+                try {
+                    birthday = sdf.parse("$birthWest/${cardBirth.substring(3..4)}/${cardBirth.substring(5..6)}")
+                    issuedDate = sdf.parse("$issuedWest/${cardIssuedDate.substring(3..4)}/${cardIssuedDate.substring(5..6)}")
+                } catch (e: ParseException) {
+                    e.printStackTrace()
+                }
+
+                model.cardNo = cardNumber
+                model.icId = cardID
+                model.name = cardName
+                model.gender = when(cardGender) {
+                    "M" -> Gender.MALE
+                    "F" -> Gender.FEMALE
+                    else -> Gender.UNKNOWN
+                }
+                model.cardType = CardType.HEALTH_CARD
+                model.birthday = if (birthday == null) null else Date(birthday.time)
+                model.issuedDate = if (issuedDate == null) null else Date(issuedDate.time)
+            }
+
+            model
+        }.onSuccess {
+            responseModel = it
+        }.onFailure {
+            it.printStackTrace()
+            responseModel = null
+        }
+
+        return responseModel
+    }
+}
