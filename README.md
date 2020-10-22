@@ -2,21 +2,30 @@
 
 Installation
 ==========================
-1.Add it to your root build.gradle
-
-    allprojects {
-	    repositories {
-		    ...
-		    maven { url 'https://jitpack.io' }
-        }
+1. Add it to your root build.gradle
+```
+allprojects {
+    repositories {
+        ...
+	maven { url 'https://jitpack.io' }
     }
+}
+```
 
-2.Add the dependency to your app module's build.gradle
-
-	dependencies {
-	        implementation 'com.github.advmeds-service:CardReaderModule_Android:Tag'
-	}
+2. Add the dependency to your app module's build.gradle
+```
+dependencies {
+    implementation 'com.github.advmeds-service:CardReaderModule_Android:Tag'
+}
+```
     
+3. Download the [.aar](acsbt-1.0.1.aar) file to /libs folder and add the dependency to your app module's build.gradle
+```
+dependencies {
+    implementation files("libs/acsbt-1.0.1.aar")
+}
+```
+
 Usage
 ==========================
 ## Bluetooth Card Reader
