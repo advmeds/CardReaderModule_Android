@@ -154,7 +154,7 @@ public class AcsBaseDevice(_decoder: Array<AcsBleBaseDecoder>) {
         }
 
         // Invoked when the Bluetooth reader returns the ATR string after powering on the card.
-        reader.setOnAtrAvailableListener { bluetoothReader, atr, errorCode ->
+        reader.setOnAtrAvailableListener { bluetoothReader, _, errorCode ->
             when (errorCode) {
                 BluetoothReader.ERROR_SUCCESS -> {
                     bleDecoder[nowDecoderIndex].start(bluetoothReader)

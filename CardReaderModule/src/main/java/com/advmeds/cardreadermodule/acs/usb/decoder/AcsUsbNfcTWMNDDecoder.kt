@@ -28,10 +28,10 @@ public class AcsUsbNfcTWMNDDecoder : AcsUsbBaseDecoder {
         var responseModel: AcsResponseModel? = null
 
         runCatching {
-            val activeProtocol = reader.setProtocol(
-                AcsUsbDevice.NFC_CARD_SLOT,
-                Reader.PROTOCOL_TX
-            )
+//            val activeProtocol = reader.setProtocol(
+//                AcsUsbDevice.NFC_CARD_SLOT,
+//                Reader.PROTOCOL_TX
+//            )
 
             var cardNumber = ""
 
