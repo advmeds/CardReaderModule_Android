@@ -177,14 +177,14 @@ public class AcsBaseDevice(_decoder: Array<AcsBleBaseDecoder>) {
             } else if (response.isEmpty()) { // Next step
 
             } else {
-                Handler(Looper.getMainLooper()).post {
+                runOnMainThread {
                     callback?.onReceiveResult(Result.success(response))
                 }
             }
         }
 
         reader.setOnEnableNotificationCompleteListener { _, result ->
-            Handler(Looper.getMainLooper()).post {
+            runOnMainThread {
                 when (result) {
                     BluetoothGatt.GATT_SUCCESS -> {
                         mDeviceStatus = AcsBleDeviceStatus.CONNECTED

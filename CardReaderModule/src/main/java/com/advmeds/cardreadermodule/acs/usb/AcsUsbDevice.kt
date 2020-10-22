@@ -81,7 +81,7 @@ public class AcsUsbDevice(
                             if (response != null) { break }
                         }
 
-                        Handler(Looper.getMainLooper()).post {
+                        runOnMainThread {
                             val immutableResponse = response
 
                             if (immutableResponse == null) {

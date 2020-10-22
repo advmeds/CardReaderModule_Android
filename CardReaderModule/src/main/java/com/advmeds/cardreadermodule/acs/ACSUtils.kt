@@ -25,11 +25,7 @@ public class ACSUtils {
          * @return <code>true</code> the <code>string</code> contains Hex number only, <code>false</code> otherwise.
          */
         private val String.isHexNumber: Boolean
-            get() {
-                var flag = true
-                this.forEach { if (!it.toByte().isHexNumber) { flag = false; return@forEach } }
-                return flag
-            }
+            get() = this.firstOrNull { !it.toByte().isHexNumber } == null
 
         private fun uniteBytes(src0: Byte, src1: Byte): Byte {
             var b0 = java.lang.Byte.decode("0x" + String(byteArrayOf(src0)))
