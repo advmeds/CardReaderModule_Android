@@ -1,4 +1,3 @@
-include ':acsbt-1.0.1'
 include ':CardReaderModule'
 include ':app'
 rootProject.name = "CardReaderLib"

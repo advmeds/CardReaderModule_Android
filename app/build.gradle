@@ -38,4 +38,5 @@ dependencies {
     implementation 'pub.devrel:easypermissions:3.0.0'
 
     implementation project(":CardReaderModule")
+    implementation files("libs/acsbt-1.0.1.aar")
 }
