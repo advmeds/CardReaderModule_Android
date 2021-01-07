@@ -6,10 +6,12 @@ import android.util.Log
 import android.view.MenuItem
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.acs.bluetooth.BluetoothReader
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseCallback
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice.AcsBleDeviceStatus
+import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleBaseDecoder
 import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleTWDecoder
 import com.vise.baseble.ViseBle
 import com.vise.baseble.callback.scan.IScanCallback
@@ -41,7 +43,22 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
         override fun onScanTimeout() {}
     }) }
 
-    private val acsBaseDevice = AcsBaseDevice(arrayOf(AcsBleTWDecoder()))
+    private val acsBaseDevice = AcsBaseDevice(arrayOf(object : AcsBleBaseDecoder {
+        override fun start(reader: BluetoothReader) {
+            reader.transmitApdu(byteArrayOf(
+                0x00.toByte(),
+                0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
+                0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(),
+                0x01.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+                0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+                0x00.toByte(), 0x00.toByte(), 0x11.toByte(), 0x00.toByte()
+            ))
+        }
+
+        override fun decode(reader: BluetoothReader, apdu: ByteArray): AcsResponseModel? {
+            return null
+        }
+    }))
 
     private val acsBaseCallback: AcsBaseCallback? = object : AcsBaseCallback {
         override fun onDeviceStatusChanged(status: AcsBleDeviceStatus) {
@@ -55,11 +72,23 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
         override fun onReceiveResult(result: Result<AcsResponseModel>) {
             Log.d("AcsBaseCallback", "onReceiveResult: $result")
 
-            AlertDialog.Builder(this@BluetoothActivity)
-                .setTitle("onReceiveResult")
-                .setMessage("$result")
-                .setPositiveButton("OK", null)
-                .show()
+            result.onSuccess {
+
+                AlertDialog.Builder(this@BluetoothActivity)
+                    .setTitle("onReceiveResult")
+                    .setMessage("$result")
+                    .setPositiveButton("OK", null)
+                    .show()
+
+            }.onFailure {
+
+                it.printStackTrace()
+//                AlertDialog.Builder(this@BluetoothActivity)
+//                    .setTitle("onReceiveResult")
+//                    .setMessage(it.localizedMessage)
+//                    .setPositiveButton("OK", null)
+//                    .show()
+            }
         }
 
         override fun onCardAbsent() {

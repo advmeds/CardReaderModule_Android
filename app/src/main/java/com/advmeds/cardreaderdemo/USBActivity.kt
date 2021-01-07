@@ -20,6 +20,7 @@ import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbNfcTWDecoder
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbTWDecoder
 import java.lang.Exception
+import java.util.*
 
 class USBActivity : AppCompatActivity() {
     val USB_PERMISSION = "com.android.example.USB_PERMISSION"
@@ -99,10 +100,10 @@ class USBActivity : AppCompatActivity() {
 
     private val mUsbPermissionActionReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            val usbDevice = intent.getParcelableExtra<Parcelable>(UsbManager.EXTRA_DEVICE) as UsbDevice? ?: return
+
             when (intent.action) {
                 USB_PERMISSION -> {
-                    val usbDevice = intent.getParcelableExtra<Parcelable>(UsbManager.EXTRA_DEVICE) as UsbDevice? ?: return
-
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         // user choose YES for your previously popup window asking for grant perssion for this usb device
                         connectUSBDevice(usbDevice)
@@ -111,6 +112,20 @@ class USBActivity : AppCompatActivity() {
                         Toast.makeText(context, "Please allow permission for device", Toast.LENGTH_LONG)
                             .show()
                     }
+                }
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    connectUSBDevice(usbDevice)
+
+                    Toast.makeText(context, "${usbDevice.productId}, ACTION_USB_DEVICE_ATTACHED", Toast.LENGTH_LONG)
+                        .show()
+                }
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    if (usbDevice.productId == acsUsbDevice.connectedDevice?.productId) {
+                        acsUsbDevice.disconnect()
+                    }
+
+                    Toast.makeText(context, "${usbDevice.productId}, ACTION_USB_DEVICE_DETACHED", Toast.LENGTH_LONG)
+                        .show()
                 }
             }
         }
@@ -122,6 +137,8 @@ class USBActivity : AppCompatActivity() {
      */
     private fun requestUSBPermission(device: UsbDevice) {
         val filter = IntentFilter(USB_PERMISSION)
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
 
         registerReceiver(
             mUsbPermissionActionReceiver,
