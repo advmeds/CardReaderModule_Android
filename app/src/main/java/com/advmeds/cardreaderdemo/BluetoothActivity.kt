@@ -43,22 +43,7 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
         override fun onScanTimeout() {}
     }) }
 
-    private val acsBaseDevice = AcsBaseDevice(arrayOf(object : AcsBleBaseDecoder {
-        override fun start(reader: BluetoothReader) {
-            reader.transmitApdu(byteArrayOf(
-                0x00.toByte(),
-                0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
-                0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(),
-                0x01.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
-                0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
-                0x00.toByte(), 0x00.toByte(), 0x11.toByte(), 0x00.toByte()
-            ))
-        }
-
-        override fun decode(reader: BluetoothReader, apdu: ByteArray): AcsResponseModel? {
-            return null
-        }
-    }))
+    private val acsBaseDevice = AcsBaseDevice(arrayOf(AcsBleTWDecoder()))
 
     private val acsBaseCallback: AcsBaseCallback? = object : AcsBaseCallback {
         override fun onDeviceStatusChanged(status: AcsBleDeviceStatus) {
@@ -82,12 +67,11 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
 
             }.onFailure {
 
-                it.printStackTrace()
-//                AlertDialog.Builder(this@BluetoothActivity)
-//                    .setTitle("onReceiveResult")
-//                    .setMessage(it.localizedMessage)
-//                    .setPositiveButton("OK", null)
-//                    .show()
+                AlertDialog.Builder(this@BluetoothActivity)
+                    .setTitle("onReceiveResult")
+                    .setMessage(it.message)
+                    .setPositiveButton("OK", null)
+                    .show()
             }
         }
 

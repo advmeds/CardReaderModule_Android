@@ -172,7 +172,9 @@ public class AcsBaseDevice(_decoder: Array<AcsBleBaseDecoder>) {
                 if (nowDecoderIndex != 0) {
                     onPowerOn()
                 } else {
-                    callback?.onReceiveResult(Result.failure(NullResponseException()))
+                    runOnMainThread {
+                        callback?.onReceiveResult(Result.failure(NullResponseException()))
+                    }
                 }
             } else if (response.isEmpty()) { // Next step
 

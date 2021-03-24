@@ -43,7 +43,9 @@ public class AcsBleTWDecoder : AcsBleBaseDecoder {
             response.split("90 00").size > 1
         ) {
             val cardNumber = String(apdu.copyOfRange(0, 12))
-            val cardName = String(apdu.copyOfRange(12, 32), Charset.forName("Big5")).trim()
+            val cardName = String(apdu.copyOfRange(12, 32), Charset.forName("Big5"))
+                .replace("\u0000", "") // 有些健保卡會在姓名長度不足的情況下透過"\u0000"來補字，這會造成web上顯示亂碼
+                .trim()
             val cardID = String(apdu.copyOfRange(32, 42))
             val cardBirth = String(apdu.copyOfRange(42, 49))
             val cardGender = String(apdu.copyOfRange(49, 50))
