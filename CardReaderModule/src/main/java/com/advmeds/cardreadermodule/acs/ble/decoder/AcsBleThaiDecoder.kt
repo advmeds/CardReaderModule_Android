@@ -5,9 +5,6 @@ import com.advmeds.cardreadermodule.acs.ACSUtils.Companion.toHexString
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.*
 
 @Deprecated("Don't Use! This Decoder not correctly work.")
 public class AcsBleThaiDecoder : AcsBleBaseDecoder {
@@ -178,21 +175,30 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                 // [Issued]/[Expired], 20140512/20230324
                 cardIssuedDate += "/" + year + String(dateArray)
 
-                val sdf = SimpleDateFormat("yyyy/MM/dd")
-
-                val west = 1911 + cardBirth.substring(0..2).toInt()
-
-                var birthday: Date? = null
-                var issuedDate: Date? = null
-                var expiredDate: Date? = null
-
-                try {
-                    birthday = sdf.parse("$west/${cardBirth.substring(3..4)}/${cardBirth.substring(5..6)}")
-                    issuedDate = sdf.parse("${cardIssuedDate.substring(0..3)}/${cardIssuedDate.substring(4..5)}/${cardIssuedDate.substring(6..7)}")
-                    expiredDate = sdf.parse("${cardIssuedDate.substring(9..12)}/${cardIssuedDate.substring(13..14)}/${cardIssuedDate.substring(15..16)}")
-                } catch (e: ParseException) {
-                    e.printStackTrace()
-                }
+                val birthYear = 1911 + cardBirth.substring(0..2).toInt()
+                val birthMonth = cardBirth.substring(3..4)
+                val birthDay = cardBirth.substring(5..6)
+                val issuedYear = cardIssuedDate.substring(0..3)
+                val issuedMonth = cardIssuedDate.substring(4..5)
+                val issuedDay = cardIssuedDate.substring(6..7)
+                val expiredYear = cardIssuedDate.substring(9..12)
+                val expiredMonth = cardIssuedDate.substring(13..14)
+                val expiredDay = cardIssuedDate.substring(15..16)
+                val birthday = listOf(
+                    birthYear,
+                    birthMonth,
+                    birthDay
+                ).joinToString("-")
+                val issuedDate = listOf(
+                    issuedYear,
+                    issuedMonth,
+                    issuedDay
+                ).joinToString("-")
+                val expiredDate = listOf(
+                    expiredYear,
+                    expiredMonth,
+                    expiredDay
+                ).joinToString("-")
 
                 return AcsResponseModel(
                     cardNumber,
@@ -200,9 +206,9 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                     cardName,
                     cardGender,
                     CardType.HEALTH_CARD,
-                    if (birthday == null) null else Date(birthday.time),
-                    if (issuedDate == null) null else Date(issuedDate.time),
-                    if (expiredDate == null) null else Date(expiredDate.time)
+                    birthday,
+                    issuedDate,
+                    expiredDate
                 )
             } else {
                 reset()

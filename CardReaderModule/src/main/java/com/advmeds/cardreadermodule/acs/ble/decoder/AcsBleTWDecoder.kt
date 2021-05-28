@@ -6,9 +6,6 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
 import java.nio.charset.Charset
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.text.ParseException
 
 public class AcsBleTWDecoder : AcsBleBaseDecoder {
     private val apduCommand1 = byteArrayOf(
@@ -38,10 +35,7 @@ public class AcsBleTWDecoder : AcsBleBaseDecoder {
             } else {
                 AcsResponseModel()
             }
-        } else if (
-            response.contains("90 00") &&
-            response.split("90 00").size > 1
-        ) {
+        } else if (response.contains("90 00") && response.split("90 00").size > 1) {
             val cardNumber = String(apdu.copyOfRange(0, 12))
             val cardName = String(apdu.copyOfRange(12, 32), Charset.forName("Big5"))
                 .replace("\u0000", "") // 有些健保卡會在姓名長度不足的情況下透過"\u0000"來補字，這會造成web上顯示亂碼
@@ -50,21 +44,22 @@ public class AcsBleTWDecoder : AcsBleBaseDecoder {
             val cardBirth = String(apdu.copyOfRange(42, 49))
             val cardGender = String(apdu.copyOfRange(49, 50))
             val cardIssuedDate = String(apdu.copyOfRange(50, 57))
-
-            val sdf = SimpleDateFormat("yyyy/MM/dd")
-
-            val birthWest = 1911 + cardBirth.substring(0..2).toInt()
-            val issuedWest = 1911 + cardIssuedDate.substring(0..2).toInt()
-
-            var birthday: Date? = null
-            var issuedDate: Date? = null
-
-            try {
-                birthday = sdf.parse("$birthWest/${cardBirth.substring(3..4)}/${cardBirth.substring(5..6)}")
-                issuedDate = sdf.parse("$issuedWest/${cardIssuedDate.substring(3..4)}/${cardIssuedDate.substring(5..6)}")
-            } catch (e: ParseException) {
-                e.printStackTrace()
-            }
+            val birthYear = 1911 + cardBirth.substring(0..2).toInt()
+            val birthMonth = cardBirth.substring(3..4)
+            val birthDay = cardBirth.substring(3..4)
+            val issuedYear = 1911 + cardIssuedDate.substring(0..2).toInt()
+            val issuedMonth = cardIssuedDate.substring(3..4)
+            val issuedDay = cardIssuedDate.substring(5..6)
+            val birthday = listOf(
+                birthYear,
+                birthMonth,
+                birthDay
+            ).joinToString("-")
+            val issuedDate = listOf(
+                issuedYear,
+                issuedMonth,
+                issuedDay
+            ).joinToString("-")
 
             val gender = when(cardGender) {
                 "M" -> Gender.MALE
@@ -78,8 +73,8 @@ public class AcsBleTWDecoder : AcsBleBaseDecoder {
                 cardName,
                 gender,
                 CardType.HEALTH_CARD,
-                if (birthday == null) null else Date(birthday.time),
-                if (issuedDate == null) null else Date(issuedDate.time),
+                birthday,
+                issuedDate,
                 null
             )
         } else {

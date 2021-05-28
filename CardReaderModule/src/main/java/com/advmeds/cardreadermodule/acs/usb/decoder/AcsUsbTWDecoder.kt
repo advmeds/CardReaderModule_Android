@@ -7,8 +7,6 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import java.nio.charset.Charset
-import java.text.ParseException
-import java.text.SimpleDateFormat
 import java.util.*
 
 public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
@@ -92,20 +90,19 @@ public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
                 val cardGender = String(response.copyOfRange(49, 50))
                 val cardIssuedDate = String(response.copyOfRange(50, 57))
 
-                val sdf = SimpleDateFormat("yyyy/MM/dd")
-
                 val birthWest = 1911 + cardBirth.substring(0..2).toInt()
                 val issuedWest = 1911 + cardIssuedDate.substring(0..2).toInt()
 
-                var birthday: Date? = null
-                var issuedDate: Date? = null
-
-                try {
-                    birthday = sdf.parse("$birthWest/${cardBirth.substring(3..4)}/${cardBirth.substring(5..6)}")
-                    issuedDate = sdf.parse("$issuedWest/${cardIssuedDate.substring(3..4)}/${cardIssuedDate.substring(5..6)}")
-                } catch (e: ParseException) {
-                    e.printStackTrace()
-                }
+                val birthday = listOf(
+                    birthWest,
+                    cardBirth.substring(3..4),
+                    cardBirth.substring(5..6)
+                ).joinToString("-")
+                val issuedDate = listOf(
+                    issuedWest,
+                    cardIssuedDate.substring(3..4),
+                    cardIssuedDate.substring(5..6)
+                ).joinToString("-")
 
                 model.cardNo = cardNumber
                 model.icId = cardID
@@ -116,8 +113,8 @@ public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
                     else -> Gender.UNKNOWN
                 }
                 model.cardType = CardType.HEALTH_CARD
-                model.birthday = if (birthday == null) null else Date(birthday.time)
-                model.issuedDate = if (issuedDate == null) null else Date(issuedDate.time)
+                model.birthday = birthday
+                model.issuedDate = issuedDate
             }
 
             model

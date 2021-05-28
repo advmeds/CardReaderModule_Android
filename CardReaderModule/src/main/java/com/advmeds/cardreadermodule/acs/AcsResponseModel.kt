@@ -1,7 +1,5 @@
 package com.advmeds.cardreadermodule.acs
 
-import java.util.*
-
 public data class AcsResponseModel(
     /** 卡號 */
     public var cardNo: String = "",
@@ -24,17 +22,17 @@ public data class AcsResponseModel(
      */
     public var cardType: CardType = CardType.UNKNOWN,
 
-    /** 生日 */
-    public var birthday: Date? = null,
+    /** 生日。格式："yyyy-MM-dd" */
+    public var birthday: String? = null,
 
-    /** 發卡日期 */
-    public var issuedDate: Date? = null,
+    /** 發卡日期。格式："yyyy-MM-dd" */
+    public var issuedDate: String? = null,
 
-    /** 到期日期 */
-    public var expiredDate: Date? = null
+    /** 到期日期。格式："yyyy-MM-dd" */
+    public var expiredDate: String? = null
 ) {
     /** 性別 */
-    public enum class Gender(rawValue: Int) {
+    public enum class Gender(val rawValue: Int) {
         /** 未知 */
         UNKNOWN(0),
 
@@ -43,10 +41,15 @@ public data class AcsResponseModel(
 
         /** 女性 */
         FEMALE(20);
+
+        companion object {
+            fun initWith(rawValue: Int) =
+                values().find { it.rawValue == rawValue }
+        }
     }
 
     /** 卡片類型 */
-    public enum class CardType(rawValue: Int) {
+    public enum class CardType(val rawValue: Int) {
         /** 未知 */
         UNKNOWN(0),
 
@@ -54,7 +57,12 @@ public data class AcsResponseModel(
         HEALTH_CARD(1),
 
         /** 員工卡 */
-        STAFF_CARD(2)
+        STAFF_CARD(2);
+
+        companion object {
+            fun initWith(rawValue: Int) =
+                values().find { it.rawValue == rawValue }
+        }
     }
 
     /**

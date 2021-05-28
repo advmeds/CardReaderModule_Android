@@ -7,8 +7,6 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import java.nio.charset.Charset
-import java.text.ParseException
-import java.text.SimpleDateFormat
 import java.util.*
 
 public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
@@ -178,14 +176,13 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
                         birthDate.size
                     )
                     val cardBirth = String.format("%03d", year) + String(birthDate)
-                    val sdf = SimpleDateFormat("yyyy/MM/dd")
                     val west = 1911 + cardBirth.substring(0..2).toInt()
-                    var birthday: Date? = null
-                    try {
-                        birthday = sdf.parse("$west/${cardBirth.substring(3..4)}/${cardBirth.substring(5..6)}")
-                    } catch (e: ParseException) {
-                        e.printStackTrace()
-                    }
+                    val birthday = listOf(
+                        west,
+                        cardBirth.substring(3..4),
+                        cardBirth.substring(5..6)
+                    ).joinToString("-")
+
                     model.birthday = birthday
 
                     val genderByte = response[208]
@@ -268,19 +265,20 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
                         dateArray.size
                     )
                     cardIssuedDate += "/$year${String(dateArray)}"
-                    val sdf = SimpleDateFormat("yyyy/MM/dd")
-                    var issuedDate: Date? = null
-                    var expiredDate: Date? = null
-                    try {
-                        issuedDate = sdf.parse("${cardIssuedDate.substring(0..3)}/${cardIssuedDate.substring(4..5)}/${cardIssuedDate.substring(6..7)}")
-                        expiredDate = sdf.parse("${cardIssuedDate.substring(9..12)}/${cardIssuedDate.substring(13..14)}/${cardIssuedDate.substring(15..16)}")
-                    } catch (e: ParseException) {
-                        e.printStackTrace()
-                    }
+
+                    val issuedDate = listOf(
+                        cardIssuedDate.substring(0..3),
+                        cardIssuedDate.substring(4..5),
+                        cardIssuedDate.substring(6..7)
+                    ).joinToString("-")
+                    val expiredDate = listOf(
+                        cardIssuedDate.substring(9..12),
+                        cardIssuedDate.substring(13..14),
+                        cardIssuedDate.substring(15..16)
+                    ).joinToString("-")
 
                     model.issuedDate = issuedDate
                     model.expiredDate = expiredDate
-
                     model.cardType = CardType.HEALTH_CARD
                 }
             }
