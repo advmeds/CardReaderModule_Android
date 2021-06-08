@@ -10,25 +10,22 @@ import java.nio.charset.Charset
 import java.util.*
 
 public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
-//     暫時不接NFC
-//    private val NFC_CARD_NO_APDU: ByteArray? = byteArrayOf(
-//        0xFF.toByte(), 0xCA.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()
-//    )
-//    private val NFC_READ_BLOCK_APDU = byteArrayOf(
-//        0xFF.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x10.toByte()
-//    )
 
-    private val SELECT_APDU = byteArrayOf(
-        0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
-        0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(), 0x01.toByte(),
-        0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
-        0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x11.toByte(),
-        0x00.toByte()
-    )
-    private val READ_PROFILE_APDU = byteArrayOf(
-        0x00.toByte(), 0xca.toByte(), 0x11.toByte(), 0x00.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0x00.toByte()
-    )
+    companion object {
+
+        private val SELECT_APDU = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
+            0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(), 0x01.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x11.toByte(),
+            0x00.toByte()
+        )
+
+        private val READ_PROFILE_APDU = byteArrayOf(
+            0x00.toByte(), 0xca.toByte(), 0x11.toByte(), 0x00.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0x00.toByte()
+        )
+    }
 
     override fun decode(reader: Reader): AcsResponseModel? {
         var responseModel: AcsResponseModel? = null

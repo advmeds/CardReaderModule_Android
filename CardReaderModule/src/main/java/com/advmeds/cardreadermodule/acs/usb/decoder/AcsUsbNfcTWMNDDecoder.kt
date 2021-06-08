@@ -7,22 +7,26 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWMNDDecoder : AcsUsbBaseDecoder {
-    private val READ_NFC_CARD_NO = byteArrayOf(
-        0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(),
-        0x07.toByte(),
-        0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
-        0x79.toByte(), 0xDB.toByte(), 0x00.toByte()
-    )
-    private val SELECT_NFC_CARD_NO = byteArrayOf(
-        0x80.toByte(), 0xA4.toByte(), 0x02.toByte(), 0x00.toByte(),
-        0x02.toByte(),
-        0xDB.toByte(), 0x00.toByte()
-    )
-    private val READ_NFC_CARD_ONLY = byteArrayOf(
-        0x80.toByte(), 0x52.toByte(), 0x00.toByte(), 0x09.toByte(),
-        0x02.toByte(),
-        0x02.toByte(), 0x10.toByte()
-    )
+
+    companion object {
+
+        private val READ_NFC_CARD_NO = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(),
+            0x07.toByte(),
+            0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x79.toByte(), 0xDB.toByte(), 0x00.toByte()
+        )
+        private val SELECT_NFC_CARD_NO = byteArrayOf(
+            0x80.toByte(), 0xA4.toByte(), 0x02.toByte(), 0x00.toByte(),
+            0x02.toByte(),
+            0xDB.toByte(), 0x00.toByte()
+        )
+        private val READ_NFC_CARD_ONLY = byteArrayOf(
+            0x80.toByte(), 0x52.toByte(), 0x00.toByte(), 0x09.toByte(),
+            0x02.toByte(),
+            0x02.toByte(), 0x10.toByte()
+        )
+    }
 
     override fun decode(reader: Reader): AcsResponseModel? {
         var responseModel: AcsResponseModel? = null

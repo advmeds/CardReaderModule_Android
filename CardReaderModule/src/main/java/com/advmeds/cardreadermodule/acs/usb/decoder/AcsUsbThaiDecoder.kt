@@ -10,32 +10,36 @@ import java.nio.charset.Charset
 import java.util.*
 
 public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
-    private val SELECT_APDU_THAI = byteArrayOf(
-        0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
-        0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
-        0x48.toByte(), 0x00.toByte(), 0x01.toByte()
-    )
-    private val THAI_PERSON_INFO = byteArrayOf(
-        0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x11.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0xD1.toByte()
-    )
-    private val THAI_NATIONAL_ID = byteArrayOf(
-        0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x04.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0x0D.toByte()
-    )
-    private val GET_RESPONSE_ID = byteArrayOf(
-        0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x0D.toByte()
-    )
-    private val GET_RESPONSE_INFO = byteArrayOf(
-        0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0xD1.toByte()
-    )
-    private val THAI_ISSUE_EXPIRE = byteArrayOf(
-        0x80.toByte(), 0xB0.toByte(), 0x01.toByte(), 0x67.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0x12.toByte()
-    )
-    private val GET_RESPONSE_DATE = byteArrayOf(
-        0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x12.toByte()
-    )
+
+    companion object {
+
+        private val SELECT_APDU_THAI = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
+            0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
+            0x48.toByte(), 0x00.toByte(), 0x01.toByte()
+        )
+        private val THAI_PERSON_INFO = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x11.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0xD1.toByte()
+        )
+        private val THAI_NATIONAL_ID = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x04.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0x0D.toByte()
+        )
+        private val GET_RESPONSE_ID = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x0D.toByte()
+        )
+        private val GET_RESPONSE_INFO = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0xD1.toByte()
+        )
+        private val THAI_ISSUE_EXPIRE = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x01.toByte(), 0x67.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0x12.toByte()
+        )
+        private val GET_RESPONSE_DATE = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x12.toByte()
+        )
+    }
 
     override fun decode(reader: Reader): AcsResponseModel? {
         var responseModel: AcsResponseModel? = null

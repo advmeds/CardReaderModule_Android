@@ -8,38 +8,42 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
 
 @Deprecated("Don't Use! This Decoder not correctly work.")
 public class AcsBleThaiDecoder : AcsBleBaseDecoder {
-    private val apduCommand1 = byteArrayOf(
-        0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
-        0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
-        0x48.toByte(), 0x00.toByte(), 0x01.toByte()
-    )
 
-    private val apduCommand2 = byteArrayOf(
-        0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x04.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0x0D.toByte()
-    )
+    companion object {
 
-    private val apduCommand3 = byteArrayOf(
-        0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x0D.toByte()
-    )
+        private val APDU_1 = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
+            0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
+            0x48.toByte(), 0x00.toByte(), 0x01.toByte()
+        )
 
-    private val apduCommand4 = byteArrayOf(
-        0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x11.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0xD1.toByte()
-    )
+        private val APDU_2 = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x04.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0x0D.toByte()
+        )
 
-    private val apduCommand5 = byteArrayOf(
-        0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0xD1.toByte()
-    )
+        private val APDU_3 = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x0D.toByte()
+        )
 
-    private val apduCommand6 = byteArrayOf(
-        0x80.toByte(), 0xB0.toByte(), 0x01.toByte(), 0x67.toByte(), 0x02.toByte(),
-        0x00.toByte(), 0x12.toByte()
-    )
+        private val APDU_4 = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x11.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0xD1.toByte()
+        )
 
-    private val apduCommand7 = byteArrayOf(
-        0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x12.toByte()
-    )
+        private val APDU_5 = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0xD1.toByte()
+        )
+
+        private val APDU_6 = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x01.toByte(), 0x67.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0x12.toByte()
+        )
+
+        private val APDU_7 = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x12.toByte()
+        )
+    }
 
     private var commandPointer: ByteArray? = null
 
@@ -63,7 +67,7 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
 
     private fun sendCommand(reader: BluetoothReader, command: ByteArray): Boolean {
         // Transmit APDU command.
-        if (!reader.transmitApdu(apduCommand1)) {
+        if (!reader.transmitApdu(APDU_1)) {
             reset()
             return false
         }
@@ -75,46 +79,46 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
 
     override fun start(reader: BluetoothReader) {
         reset()
-        sendCommand(reader, apduCommand1)
+        sendCommand(reader, APDU_1)
     }
 
     override fun decode(reader: BluetoothReader, apdu: ByteArray): AcsResponseModel? {
         val response = apdu.toHexString()
 
-        if (commandPointer === apduCommand1) {
+        if (commandPointer === APDU_1) {
             if (response.startsWith("61 ")) {
-                if (!sendCommand(reader, apduCommand2)) return null
+                if (!sendCommand(reader, APDU_2)) return null
             } else {
                 reset()
                 return null
             }
-        } else if (commandPointer === apduCommand2) {
+        } else if (commandPointer === APDU_2) {
             if (response.startsWith("61 0D")) {
-                if (!sendCommand(reader, apduCommand3)) return null
+                if (!sendCommand(reader, APDU_3)) return null
             } else {
                 reset()
                 return null
             }
-        } else if (commandPointer === apduCommand3) {
+        } else if (commandPointer === APDU_3) {
             if (response.endsWith("90 00")) {
                 val id = ByteArray(13)
                 System.arraycopy(apdu, 0, id, 0, id.size)
                 cardNumber = String(id)
                 cardID = String(id)
 
-                if (!sendCommand(reader, apduCommand4)) return null
+                if (!sendCommand(reader, APDU_4)) return null
             } else {
                 reset()
                 return null
             }
-        } else if (commandPointer === apduCommand4) {
+        } else if (commandPointer === APDU_4) {
             if (response.startsWith("61 D1")) {
-                if (!sendCommand(reader, apduCommand5)) return null
+                if (!sendCommand(reader, APDU_5)) return null
             } else {
                 reset()
                 return null
             }
-        } else if (commandPointer === apduCommand5) {
+        } else if (commandPointer === APDU_5) {
             if (response.endsWith("90 00")) {
                 val name = ByteArray(100)
                 System.arraycopy(apdu, 100, name, 0, name.size)
@@ -145,19 +149,19 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                     else -> Gender.UNKNOWN
                 }
 
-                if (!sendCommand(reader, apduCommand6)) return null
+                if (!sendCommand(reader, APDU_6)) return null
             } else {
                 reset()
                 return null
             }
-        } else if (commandPointer === apduCommand6) {
+        } else if (commandPointer === APDU_6) {
             if (response.startsWith("61 12")) {
-                if (!sendCommand(reader, apduCommand7)) return null
+                if (!sendCommand(reader, APDU_7)) return null
             } else {
                 reset()
                 return null
             }
-        } else if (commandPointer === apduCommand7) {
+        } else if (commandPointer === APDU_7) {
             if (response.endsWith("90 00")) {
                 val yearArray = ByteArray(4)
                 System.arraycopy(apdu, 0, yearArray, 0, yearArray.size)

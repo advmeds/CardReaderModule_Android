@@ -6,9 +6,13 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
-    private val READ_NFC_CARD_NO = byteArrayOf(
-        0xFF.toByte(), 0xCA.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()
-    )
+
+    companion object {
+
+        private val READ_NFC_CARD_NO = byteArrayOf(
+            0xFF.toByte(), 0xCA.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()
+        )
+    }
 
     override fun decode(reader: Reader): AcsResponseModel? {
         var responseModel: AcsResponseModel? = null

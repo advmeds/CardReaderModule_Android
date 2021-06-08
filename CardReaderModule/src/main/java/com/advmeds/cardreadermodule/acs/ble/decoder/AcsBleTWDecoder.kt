@@ -8,29 +8,33 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
 import java.nio.charset.Charset
 
 public class AcsBleTWDecoder : AcsBleBaseDecoder {
-    private val apduCommand1 = byteArrayOf(
-        0x00.toByte(),
-        0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
-        0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(),
-        0x01.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
-        0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
-        0x00.toByte(), 0x00.toByte(), 0x11.toByte(), 0x00.toByte()
-    )
 
-    private val apduCommand2 = byteArrayOf(
-        0x00.toByte(), 0xca.toByte(), 0x11.toByte(),
-        0x00.toByte(), 0x02.toByte(), 0x00.toByte(), 0x00.toByte()
-    )
+    companion object {
+
+        private val APDU_1 = byteArrayOf(
+            0x00.toByte(),
+            0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x10.toByte(),
+            0xD1.toByte(), 0x58.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x01.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x11.toByte(), 0x00.toByte()
+        )
+
+        private val APDU_2 = byteArrayOf(
+            0x00.toByte(), 0xca.toByte(), 0x11.toByte(),
+            0x00.toByte(), 0x02.toByte(), 0x00.toByte(), 0x00.toByte()
+        )
+    }
 
     override fun start(reader: BluetoothReader) {
-        reader.transmitApdu(apduCommand1)
+        reader.transmitApdu(APDU_1)
     }
 
     override fun decode(reader: BluetoothReader, apdu: ByteArray): AcsResponseModel? {
         val response = apdu.toHexString()
 
         if (response.startsWith("90 00")) {
-            return if (!reader.transmitApdu(apduCommand2)) {
+            return if (!reader.transmitApdu(APDU_2)) {
                 null
             } else {
                 AcsResponseModel()
