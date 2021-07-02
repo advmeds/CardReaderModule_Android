@@ -19,7 +19,7 @@ dependencies {
 }
 ```
     
-3. Download the [.aar](https://github.com/advmeds-service/CardReaderModule_Android/raw/main/acsbt-1.0.1/acsbt-1.0.1.aar) file to /libs folder and add the dependency to your app module's build.gradle
+3. Download the [.aar](https://github.com/advmeds-service/CardReaderModule_Android/blob/main/CardReaderModule/libs/acsbt-1.0.1.aar) file to /libs folder and add the dependency to your app module's build.gradle
 ```
 dependencies {
     implementation files("libs/acsbt-1.0.1.aar")
