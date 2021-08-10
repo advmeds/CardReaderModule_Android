@@ -4,37 +4,34 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.acs.smartcard.Reader
-import com.acs.smartcard.ReaderException
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
-import com.advmeds.cardreadermodule.acs.EmptyResponseException
+import com.advmeds.cardreadermodule.acs.InvalidCardException
 import com.advmeds.cardreadermodule.acs.NullResponseException
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbBaseDecoder
 import java.lang.ref.WeakReference
 
 public class AcsUsbDevice(
-    _usbManager: UsbManager,
-    _usbDecoders: Array<AcsUsbBaseDecoder> = arrayOf(),
-    _nfcDecoders: Array<AcsUsbBaseDecoder> = arrayOf()
+    private val mUsbManager: UsbManager,
+    private val usbDecoders: Array<AcsUsbBaseDecoder> = emptyArray(),
+    private val nfcDecoders: Array<AcsUsbBaseDecoder> = emptyArray()
 ) {
-    private val mUsbManager = _usbManager
-
-    private val mReader = Reader(_usbManager)
-
-    public var callback: AcsUsbCallback? = null
-        set(value) { field = WeakReference<AcsUsbCallback>(value).get() }
-
     companion object {
         public const val SMART_CARD_SLOT = 0
         public const val NFC_CARD_SLOT = 1
     }
 
-    private val usbDecoders: Array<AcsUsbBaseDecoder> = _usbDecoders
-    private val nfcDecoders: Array<AcsUsbBaseDecoder> = _nfcDecoders
+    private val mReader = Reader(mUsbManager)
+
+    public var callback: AcsUsbCallback? = null
+        set(value) {
+            field = WeakReference<AcsUsbCallback>(value).get()
+        }
 
     /** 取得可支援的USB裝置 */
     public val supportedDevice: UsbDevice?
-        get() = mUsbManager.deviceList.values.firstOrNull { mReader.isSupported(it) }
+        get() = mUsbManager.deviceList.values.find { mReader.isSupported(it) }
 
     /** 取得已連線的USB裝置 */
     public val connectedDevice: UsbDevice?
@@ -55,66 +52,54 @@ public class AcsUsbDevice(
 
     /** 設置Reader的Listener */
     private fun setupReader() {
-        mReader.setOnStateChangeListener { cardType, _, cardAction ->
-            var mutableCardAction = cardAction
-
-            if (cardAction < Reader.CARD_UNKNOWN || cardAction > Reader.CARD_SPECIFIC) {
-                mutableCardAction = Reader.CARD_UNKNOWN
-            }
-
-            when (mutableCardAction) {
+        mReader.setOnStateChangeListener { cardSlot, _, cardAction ->
+            when (cardAction) {
                 Reader.CARD_PRESENT -> { // 卡片插入
-                    when (cardType) {
-                        SMART_CARD_SLOT,
-                        NFC_CARD_SLOT -> runOnMainThread { callback?.onCardPresent() }
+                    runOnMainThread {
+                        callback?.onCardPresent()
                     }
 
-                    try {
-                        val result = when (cardType) {
-                            SMART_CARD_SLOT -> powerOnSmartCard()
-                            NFC_CARD_SLOT -> powerOnNFCCard()
-                            else -> false
+                    val result = try {
+                        val decoders = when (cardSlot) {
+                            SMART_CARD_SLOT -> usbDecoders
+                            NFC_CARD_SLOT -> nfcDecoders
+                            else -> emptyArray()
                         }
 
-                        if (result) {
-                            var response: AcsResponseModel? = null
+                        val responses = decoders.map {
+                            return@map try {
+                                val cardIsAvailable = powerOnCard(cardSlot)
 
-                            val decoders = when (cardType) {
-                                SMART_CARD_SLOT -> usbDecoders
-                                NFC_CARD_SLOT -> nfcDecoders
-                                else -> arrayOf()
-                            }
-
-                            for (acsUsbBaseDecoder in decoders) {
-                                response = acsUsbBaseDecoder.decode(mReader)
-
-                                if (response != null) {
-                                    break
-                                }
-                            }
-
-                            runOnMainThread {
-                                val immutableResponse = response
-
-                                if (immutableResponse == null) {
-                                    callback?.onReceiveResult(Result.failure(NullResponseException()))
+                                if (cardIsAvailable) {
+                                    Result.success(it.decode(mReader))
                                 } else {
-                                    if (immutableResponse.isEmpty()) {
-                                        callback?.onReceiveResult(Result.failure(EmptyResponseException()))
-                                    } else {
-                                        callback?.onReceiveResult(Result.success(immutableResponse))
-                                    }
+                                    throw InvalidCardException()
                                 }
+                            } catch (e: Exception) {
+                                Log.e(it::class.java.simpleName, "Failed to decode", e)
+                                Result.failure(e)
                             }
                         }
-                    } catch (e: ReaderException) {
-                        runOnMainThread { callback?.onReceiveResult(Result.failure(e)) }
+
+                        when (val response = responses.find { it.isSuccess }) {
+                            null -> Result.failure(
+                                NullResponseException(
+                                    cause = responses.find { it.isFailure }?.exceptionOrNull()
+                                )
+                            )
+                            else -> Result.success(response.getOrThrow())
+                        }
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+
+                    runOnMainThread {
+                        callback?.onReceiveResult(result)
                     }
                 }
                 Reader.CARD_ABSENT -> { // 卡片抽離
-                    when (cardType) {
-                        SMART_CARD_SLOT,
-                        NFC_CARD_SLOT -> runOnMainThread { callback?.onCardAbsent() }
+                    runOnMainThread {
+                        callback?.onCardAbsent()
                     }
                 }
             }
@@ -126,7 +111,9 @@ public class AcsUsbDevice(
         // 檢查當前是否已連線
         if (mReader.isOpened) {
             // 若已連線則在檢查已連線的裝置是否與準備要連線的裝置相同
-            if (connectedDevice === device) { return }
+            if (connectedDevice === device) {
+                return
+            }
             // 若不相同，則與已連線的裝置斷線
             mReader.close()
         }
@@ -149,30 +136,11 @@ public class AcsUsbDevice(
         mReader.close()
     }
 
-    /** Power on the smart card. */
-    @Throws(ReaderException::class)
-    private fun powerOnSmartCard(): Boolean = try {
-        powerOnCard(SMART_CARD_SLOT)
-    } catch (e: ReaderException) {
-        throw e
-    }
+    private fun powerOnCard(slotNum: Int): Boolean =
+        mReader.power(slotNum, Reader.CARD_WARM_RESET) != null
 
-    /** Power on the NFC card. */
-    @Throws(ReaderException::class)
-    private fun powerOnNFCCard(): Boolean = try {
-        powerOnCard(NFC_CARD_SLOT)
-    } catch (e: ReaderException) {
-        throw e
-    }
-
-    /** Power on the card. */
-    @Throws(ReaderException::class)
-    private fun powerOnCard(slotNum: Int): Boolean = try {
-        val atr = mReader.power(slotNum, Reader.CARD_WARM_RESET)
-        atr != null
-    } catch (e: ReaderException) {
-        throw e
-    }
+    private fun powerDownCard(slotNum: Int): Boolean =
+        mReader.power(slotNum, Reader.CARD_POWER_DOWN) != null
 
     /** 在主執行緒執行點什麼 */
     private fun runOnMainThread(r: Runnable) = Handler(Looper.getMainLooper()).post(r)

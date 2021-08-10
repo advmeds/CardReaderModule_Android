@@ -7,12 +7,14 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.acs.bluetooth.*
-import com.advmeds.cardreadermodule.acs.ACSUtils
 import com.advmeds.cardreadermodule.acs.NullResponseException
 import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleBaseDecoder
+import com.advmeds.cardreadermodule.acs.hexStringToByteArray
 import java.lang.ref.WeakReference
 
-public class AcsBaseDevice(_decoder: Array<AcsBleBaseDecoder>) {
+public class AcsBaseDevice(
+    private val bleDecoder: Array<AcsBleBaseDecoder>
+    ) {
     /** 設備狀態 */
     public enum class AcsBleDeviceStatus(rawValue: Int) {
         /** 未知 */
@@ -30,8 +32,6 @@ public class AcsBaseDevice(_decoder: Array<AcsBleBaseDecoder>) {
         /** 已斷線 */
         DISCONNECTED(4);
     }
-
-    private val bleDecoder: Array<AcsBleBaseDecoder> = _decoder
 
     public var callback: AcsBaseCallback? = null
         set(value) { field = WeakReference<AcsBaseCallback>(value).get() }
@@ -206,11 +206,9 @@ public class AcsBaseDevice(_decoder: Array<AcsBleBaseDecoder>) {
 
     /** Authenticate the connected card reader. */
     private fun onAuth() {
-        val masterKey = ACSUtils.getStringinHexBytes(
-            "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
-        )
+        val masterKey = "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF".hexStringToByteArray()
 
-        if (masterKey != null && masterKey.isNotEmpty()) {
+        if (masterKey.isNotEmpty()) {
             // Start authentication
             mBluetoothReader?.authenticate(masterKey)
         }

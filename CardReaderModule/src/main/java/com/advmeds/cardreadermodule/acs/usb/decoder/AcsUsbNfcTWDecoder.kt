@@ -6,57 +6,43 @@ import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
-
     companion object {
-
         private val READ_NFC_CARD_NO = byteArrayOf(
             0xFF.toByte(), 0xCA.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()
         )
     }
 
-    override fun decode(reader: Reader): AcsResponseModel? {
-        var responseModel: AcsResponseModel? = null
+    override fun decode(reader: Reader): AcsResponseModel {
+        val model = AcsResponseModel(
+            cardType = CardType.STAFF_CARD
+        )
 
-        runCatching {
-            var cardNumber = ""
+        val response = ByteArray(300)
 
-            val response = ByteArray(300)
+        reader.control(
+            AcsUsbDevice.NFC_CARD_SLOT,
+            Reader.IOCTL_CCID_ESCAPE,
+            READ_NFC_CARD_NO,
+            READ_NFC_CARD_NO.size,
+            response,
+            response.size
+        )
 
-            reader.control(
-                AcsUsbDevice.NFC_CARD_SLOT,
-                Reader.IOCTL_CCID_ESCAPE,
-                READ_NFC_CARD_NO,
-                READ_NFC_CARD_NO.size,
-                response,
-                response.size
-            )
+        val resultString = convertNfcBytesToHex(response)
 
-            val resultString = convertNfcBytesToHex(response)
+        if (resultString.contains("900000") && resultString.contains("414944")) {
+            val number = resultString.split("900000").first()
 
-            if (resultString.contains("900000") && resultString.contains("414944")) {
-                val number = resultString.split("900000").first()
+            model.cardNo = number
+        } else if (resultString.contains("900000")) {
+            val number = resultString.split("900000").first()
 
-                cardNumber = number
-            } else if (resultString.contains("900000")) {
-                val number = resultString.split("900000").first()
-
-                if (number.length >= 8) {
-                    cardNumber = number
-                }
+            if (number.length >= 8) {
+                model.cardNo = number
             }
-
-            cardNumber
-        }.onSuccess {
-            responseModel = AcsResponseModel(
-                cardNo = it,
-                cardType = CardType.STAFF_CARD
-            )
-        }.onFailure {
-            it.printStackTrace()
-            responseModel = null
         }
 
-        return responseModel
+        return model
     }
 
     private fun convertNfcBytesToHex(bytes: ByteArray): String {

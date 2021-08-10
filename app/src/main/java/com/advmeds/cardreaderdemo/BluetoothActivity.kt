@@ -1,25 +1,21 @@
 package com.advmeds.cardreaderdemo
 
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.acs.bluetooth.BluetoothReader
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseCallback
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice.AcsBleDeviceStatus
-import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleBaseDecoder
 import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleTWDecoder
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.vise.baseble.ViseBle
 import com.vise.baseble.callback.scan.IScanCallback
 import com.vise.baseble.callback.scan.ScanCallback
 import com.vise.baseble.model.BluetoothLeDevice
 import com.vise.baseble.model.BluetoothLeDeviceStore
 import pub.devrel.easypermissions.EasyPermissions
-import java.lang.ref.WeakReference
 
 class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks  {
 
@@ -58,16 +54,13 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
             Log.d("AcsBaseCallback", "onReceiveResult: $result")
 
             result.onSuccess {
-
-                AlertDialog.Builder(this@BluetoothActivity)
+                MaterialAlertDialogBuilder(this@BluetoothActivity)
                     .setTitle("onReceiveResult")
                     .setMessage("$result")
                     .setPositiveButton("OK", null)
                     .show()
-
             }.onFailure {
-
-                AlertDialog.Builder(this@BluetoothActivity)
+                MaterialAlertDialogBuilder(this@BluetoothActivity)
                     .setTitle("onReceiveResult")
                     .setMessage(it.message)
                     .setPositiveButton("OK", null)
@@ -84,7 +77,6 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ble)
 
-        setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
 

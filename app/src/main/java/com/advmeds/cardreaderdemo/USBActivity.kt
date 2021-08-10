@@ -8,22 +8,21 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Bundle
-import android.os.Parcelable
 import android.util.Log
 import android.view.MenuItem
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbCallback
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
-import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbNfcTWDecoder
-import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbTWDecoder
-import java.lang.Exception
+import com.advmeds.cardreadermodule.acs.usb.decoder.*
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import java.util.*
 
 class USBActivity : AppCompatActivity() {
-    val USB_PERMISSION = "com.android.example.USB_PERMISSION"
+    companion object {
+        private const val USB_PERMISSION = "${BuildConfig.APPLICATION_ID}.USB_PERMISSION"
+    }
 
     private val usbManager by lazy { getSystemService(Context.USB_SERVICE) as UsbManager }
 
@@ -51,7 +50,7 @@ class USBActivity : AppCompatActivity() {
         override fun onReceiveResult(result: Result<AcsResponseModel>) {
             Log.d("AcsUsbCallback", "onReceiveResult: $result")
 
-            AlertDialog.Builder(this@USBActivity)
+            MaterialAlertDialogBuilder(this@USBActivity)
                 .setTitle("onReceiveResult")
                 .setMessage("$result")
                 .setPositiveButton("OK", null)
@@ -63,17 +62,75 @@ class USBActivity : AppCompatActivity() {
         }
     }
 
+    private val detectUsbDeviceReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val usbDevice = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE) ?: return
+
+            when (intent.action) {
+                USB_PERMISSION -> {
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                        // user choose YES for your previously popup window asking for grant perssion for this usb device
+                        acsUsbDevice.connectDevice(usbDevice)
+                    } else {
+                        // user choose NO for your previously popup window asking for grant perssion for this usb device
+                        Snackbar.make(
+                            findViewById(android.R.id.content),
+                            "Please allow permission for ${usbDevice.productName}.",
+                            Snackbar.LENGTH_LONG
+                        ).show()
+                    }
+                }
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    connectUSBDevice(usbDevice)
+
+                    Snackbar.make(
+                        findViewById(android.R.id.content),
+                        "${usbDevice.productName}, ACTION_USB_DEVICE_ATTACHED",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    if (usbDevice.productId == acsUsbDevice.connectedDevice?.productId) {
+                        acsUsbDevice.disconnect()
+                    }
+
+                    Snackbar.make(
+                        findViewById(android.R.id.content),
+                        "${usbDevice.productName}, ACTION_USB_DEVICE_DETACHED",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_usb)
 
-        setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
+
+        val filter = IntentFilter(USB_PERMISSION)
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+
+        registerReceiver(
+            detectUsbDeviceReceiver,
+            filter
+        )
 
         acsUsbDevice.callback = acsUsbCallback
 
         acsUsbDevice.supportedDevice?.also { connectUSBDevice(it) }
+    }
+
+    private fun connectUSBDevice(device: UsbDevice) {
+        val mPermissionIntent = PendingIntent.getBroadcast(
+            this, 0, Intent(USB_PERMISSION), 0
+        )
+
+        usbManager.requestPermission(device, mPermissionIntent)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -92,74 +149,9 @@ class USBActivity : AppCompatActivity() {
         acsUsbDevice.disconnect()
 
         try {
-            unregisterReceiver(mUsbPermissionActionReceiver)
+            unregisterReceiver(detectUsbDeviceReceiver)
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    private val mUsbPermissionActionReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val usbDevice = intent.getParcelableExtra<Parcelable>(UsbManager.EXTRA_DEVICE) as UsbDevice? ?: return
-
-            when (intent.action) {
-                USB_PERMISSION -> {
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        // user choose YES for your previously popup window asking for grant perssion for this usb device
-                        connectUSBDevice(usbDevice)
-                    } else {
-                        // user choose NO for your previously popup window asking for grant perssion for this usb device
-                        Toast.makeText(context, "Please allow permission for device", Toast.LENGTH_LONG)
-                            .show()
-                    }
-                }
-                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                    connectUSBDevice(usbDevice)
-
-                    Toast.makeText(context, "${usbDevice.productId}, ACTION_USB_DEVICE_ATTACHED", Toast.LENGTH_LONG)
-                        .show()
-                }
-                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                    if (usbDevice.productId == acsUsbDevice.connectedDevice?.productId) {
-                        acsUsbDevice.disconnect()
-                    }
-
-                    Toast.makeText(context, "${usbDevice.productId}, ACTION_USB_DEVICE_DETACHED", Toast.LENGTH_LONG)
-                        .show()
-                }
-            }
-        }
-    }
-
-    /**
-     * 向該USB裝置取得權限
-     * @param device USB裝置
-     */
-    private fun requestUSBPermission(device: UsbDevice) {
-        val filter = IntentFilter(USB_PERMISSION)
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
-
-        registerReceiver(
-            mUsbPermissionActionReceiver,
-            filter
-        )
-
-        val mPermissionIntent = PendingIntent.getBroadcast(
-            this,
-            0,
-            Intent(USB_PERMISSION),
-            0
-        )
-
-        usbManager.requestPermission(device, mPermissionIntent)
-    }
-
-    private fun connectUSBDevice(device: UsbDevice) {
-        if (usbManager.hasPermission(device)) {
-            acsUsbDevice.connectDevice(device)
-        } else {
-            requestUSBPermission(device)
         }
     }
 }

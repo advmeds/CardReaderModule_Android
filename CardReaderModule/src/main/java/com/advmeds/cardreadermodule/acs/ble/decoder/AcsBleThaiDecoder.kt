@@ -1,10 +1,10 @@
 package com.advmeds.cardreadermodule.acs.ble.decoder
 
 import com.acs.bluetooth.BluetoothReader
-import com.advmeds.cardreadermodule.acs.ACSUtils.Companion.toHexString
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
+import com.advmeds.cardreadermodule.acs.toHexString
 
 @Deprecated("Don't Use! This Decoder not correctly work.")
 public class AcsBleThaiDecoder : AcsBleBaseDecoder {

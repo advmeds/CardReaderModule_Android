@@ -1,18 +1,16 @@
 package com.advmeds.cardreadermodule.acs.usb.decoder
 
 import com.acs.smartcard.Reader
-import com.advmeds.cardreadermodule.acs.ACSUtils.Companion.toHexString
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
+import com.advmeds.cardreadermodule.acs.DecodeErrorException
+import com.advmeds.cardreadermodule.acs.toHexString
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import java.nio.charset.Charset
-import java.util.*
 
 public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
-
     companion object {
-
         private val SELECT_APDU_THAI = byteArrayOf(
             0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
             0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
@@ -41,164 +39,160 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
         )
     }
 
-    override fun decode(reader: Reader): AcsResponseModel? {
-        var responseModel: AcsResponseModel? = null
+    override fun decode(reader: Reader): AcsResponseModel {
+        val activeProtocol = reader.setProtocol(
+            AcsUsbDevice.SMART_CARD_SLOT,
+            Reader.PROTOCOL_TX
+        )
 
-        runCatching {
-            val model = AcsResponseModel()
+        if (activeProtocol != Reader.PROTOCOL_T0) {
+            throw DecodeErrorException("The active protocol is not equal T=0")
+        }
 
-            val activeProtocol = reader.setProtocol(
-                AcsUsbDevice.SMART_CARD_SLOT,
-                Reader.PROTOCOL_TX
-            )
+        var response = ByteArray(300)
 
-            if (activeProtocol != Reader.PROTOCOL_T0) { // Set protocol error.
-                return@runCatching model
-            }
+        reader.transmit(
+            AcsUsbDevice.SMART_CARD_SLOT,
+            SELECT_APDU_THAI,
+            SELECT_APDU_THAI.size,
+            response,
+            response.size
+        )
 
-            var response = ByteArray(300)
+        var responseString = response.toHexString()
 
-            reader.transmit(
-                AcsUsbDevice.SMART_CARD_SLOT,
-                SELECT_APDU_THAI,
-                SELECT_APDU_THAI.size,
+        if (!responseString.startsWith("61 ")) {
+            throw DecodeErrorException("Transmit select error")
+        }
+
+        response = ByteArray(300)
+
+        reader.transmit(
+            AcsUsbDevice.SMART_CARD_SLOT,
+            THAI_NATIONAL_ID,
+            THAI_NATIONAL_ID.size,
+            response,
+            response.size
+        )
+
+        responseString = response.toHexString()
+
+        if (!responseString.startsWith("61 0D")) {
+            throw DecodeErrorException("Transmit read national id error")
+        }
+
+        val model = AcsResponseModel(
+            cardType = CardType.HEALTH_CARD
+        )
+
+        response = ByteArray(15)
+
+        reader.transmit(
+            AcsUsbDevice.SMART_CARD_SLOT,
+            GET_RESPONSE_ID,
+            GET_RESPONSE_ID.size,
+            response,
+            response.size
+        )
+
+        responseString = response.toHexString()
+
+        if (responseString.endsWith("90 00")) {
+            val id = ByteArray(13)
+
+            System.arraycopy(
                 response,
-                response.size
+                0,
+                id,
+                0,
+                id.size
             )
 
-            var responseString = response.toHexString()
+            model.cardNo = String(id)
+            model.icId = String(id)
+        }
 
-            if (!responseString.startsWith("61 ")) { // Transmit select error
-                return@runCatching model
-            }
+        response = ByteArray(300)
 
-            response = ByteArray(300)
+        reader.transmit(
+            AcsUsbDevice.SMART_CARD_SLOT,
+            THAI_PERSON_INFO,
+            THAI_PERSON_INFO.size,
+            response,
+            response.size
+        )
+
+        responseString = response.toHexString()
+
+        if (responseString.startsWith("61 D1")) {
+            response = ByteArray(211)
 
             reader.transmit(
                 AcsUsbDevice.SMART_CARD_SLOT,
-                THAI_NATIONAL_ID,
-                THAI_NATIONAL_ID.size,
+                GET_RESPONSE_INFO,
+                GET_RESPONSE_INFO.size,
                 response,
                 response.size
             )
 
             responseString = response.toHexString()
 
-            if (responseString.startsWith("61 0D")) { // Transmit read national id success.
-                response = ByteArray(15)
-
-                reader.transmit(
-                    AcsUsbDevice.SMART_CARD_SLOT,
-                    GET_RESPONSE_ID,
-                    GET_RESPONSE_ID.size,
+            if (responseString.endsWith("90 00")) {
+                val name = ByteArray(90)
+                System.arraycopy(
                     response,
-                    response.size
+                    0,
+                    name,
+                    0,
+                    name.size
                 )
-
-                responseString = response.toHexString()
-
-                if (responseString.endsWith("90 00")) {
-                    val id = ByteArray(13)
-
-                    System.arraycopy(
-                        response,
-                        0,
-                        id,
-                        0,
-                        id.size
-                    )
-
-                    model.cardNo = String(id)
-                    model.icId = String(id)
-                }
-            } else { // Transmit read national id error.
-                return@runCatching model
-            }
-
-            response = ByteArray(300)
-
-            reader.transmit(
-                AcsUsbDevice.SMART_CARD_SLOT,
-                THAI_PERSON_INFO,
-                THAI_PERSON_INFO.size,
-                response,
-                response.size
-            )
-
-            responseString = response.toHexString()
-
-            if (responseString.startsWith("61 D1")) { // Transmit personal info success.
-                response = ByteArray(211)
-
-                reader.transmit(
-                    AcsUsbDevice.SMART_CARD_SLOT,
-                    GET_RESPONSE_INFO,
-                    GET_RESPONSE_INFO.size,
-                    response,
-                    response.size
-                )
-
-                responseString = response.toHexString()
-
-                if (responseString.endsWith("90 00")) {
-                    val name = ByteArray(90)
-                    System.arraycopy(
-                        response,
-                        0,
-                        name,
-                        0,
-                        name.size
-                    )
-                    val nameArray = String(name, Charset.forName("TIS620")).split("#")
-                    var cardName = nameArray.first()
-                    if (nameArray.size > 1) {
-                        for (i in 1 until nameArray.size) {
-                            if (nameArray[i].isNotEmpty()) {
-                                cardName += " ${nameArray[i]}"
-                            }
+                val nameArray = String(name, Charset.forName("TIS620")).split("#")
+                var cardName = nameArray.first()
+                if (nameArray.size > 1) {
+                    for (i in 1 until nameArray.size) {
+                        if (nameArray[i].isNotEmpty()) {
+                            cardName += " ${nameArray[i]}"
                         }
                     }
-                    cardName = cardName.trim()
-                    model.name = cardName
-
-                    val birthYear = ByteArray(4)
-                    System.arraycopy(
-                        response,
-                        200,
-                        birthYear,
-                        0,
-                        birthYear.size
-                    )
-                    // From Thai Year to R.O.C. Year
-                    val year = String(birthYear).toInt() - 2454
-                    val birthDate = ByteArray(4)
-                    System.arraycopy(
-                        response,
-                        204,
-                        birthDate,
-                        0,
-                        birthDate.size
-                    )
-                    val cardBirth = String.format("%03d", year) + String(birthDate)
-                    val west = 1911 + cardBirth.substring(0..2).toInt()
-                    val birthday = listOf(
-                        west,
-                        cardBirth.substring(3..4),
-                        cardBirth.substring(5..6)
-                    ).joinToString("-")
-
-                    model.birthday = birthday
-
-                    val genderByte = response[208]
-                    val cardGender = when (genderByte.toChar()) {
-                        '1' -> Gender.MALE
-                        '2' -> Gender.FEMALE
-                        else -> Gender.UNKNOWN
-                    }
-                    model.gender = cardGender
                 }
-            } else { // Transmit personal info error.
-                return@runCatching model
+                cardName = cardName.trim()
+                model.name = cardName
+
+                val birthYear = ByteArray(4)
+                System.arraycopy(
+                    response,
+                    200,
+                    birthYear,
+                    0,
+                    birthYear.size
+                )
+                // From Thai Year to R.O.C. Year
+                val year = String(birthYear).toInt() - 2454
+                val birthDate = ByteArray(4)
+                System.arraycopy(
+                    response,
+                    204,
+                    birthDate,
+                    0,
+                    birthDate.size
+                )
+                val cardBirth = String.format("%03d", year) + String(birthDate)
+                val west = 1911 + cardBirth.substring(0..2).toInt()
+                val birthday = listOf(
+                    west,
+                    cardBirth.substring(3..4),
+                    cardBirth.substring(5..6)
+                ).joinToString("-")
+
+                model.birthday = birthday
+
+                val genderByte = response[208]
+                val cardGender = when (genderByte.toChar()) {
+                    '1' -> Gender.MALE
+                    '2' -> Gender.FEMALE
+                    else -> Gender.UNKNOWN
+                }
+                model.gender = cardGender
             }
 
             response = ByteArray(300)
@@ -283,18 +277,10 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
 
                     model.issuedDate = issuedDate
                     model.expiredDate = expiredDate
-                    model.cardType = CardType.HEALTH_CARD
                 }
             }
-
-            model
-        }.onSuccess {
-            responseModel = it
-        }.onFailure {
-            it.printStackTrace()
-            responseModel = null
         }
 
-        return responseModel
+        return model
     }
 }
