@@ -145,8 +145,6 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             cardIssued.substring(6..7)
         ).joinToString("-")
 
-        export(model.name)
-
         return model
     }
 
@@ -186,49 +184,6 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             String(responseWithoutCheckCode).trim()
         } else {
             responseWithoutCheckCode.toHexString()
-        }
-    }
-
-    /** 將字串匯出檔案 */
-    private fun export(name: String) {
-        if (name.isBlank()) return
-        if (Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED) return
-
-        val now = Date()
-        val locale = Locale.TAIWAN
-        val zone = TimeZone.getTimeZone("Asia/Taipei")
-        val folderName = SimpleDateFormat("yyyy-MM-dd", locale).apply {
-            timeZone = zone
-        }.format(
-            now
-        )
-
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", locale).apply {
-            timeZone = zone
-        }.format(
-            now
-        )
-        // create directory
-        val root = File(
-            Environment.getExternalStorageDirectory(),
-            "CardReaderDemo/Logs"
-        )
-
-        val folder = File(
-            root,
-            folderName
-        )
-
-        if (!folder.exists()) {
-            folder.mkdirs()
-        }
-
-        // create file
-        val fileName = "$timeStamp.txt"
-        val file = File(folder, fileName)
-
-        FileWriter(file, true).use {
-            it.append(name)
         }
     }
 }
