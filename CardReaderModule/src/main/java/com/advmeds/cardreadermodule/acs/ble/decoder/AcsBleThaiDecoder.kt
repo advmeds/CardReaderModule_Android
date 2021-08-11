@@ -8,9 +8,7 @@ import com.advmeds.cardreadermodule.acs.toHexString
 
 @Deprecated("Don't Use! This Decoder not correctly work.")
 public class AcsBleThaiDecoder : AcsBleBaseDecoder {
-
     companion object {
-
         private val APDU_1 = byteArrayOf(
             0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
             0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
@@ -52,7 +50,6 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
     private var cardID = ""
     private var cardBirth = ""
     private var cardGender = Gender.UNKNOWN
-    private var cardIssuedDate = ""
 
     private fun reset() {
         commandPointer = null
@@ -62,7 +59,6 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
         cardID = ""
         cardBirth = ""
         cardGender = Gender.UNKNOWN
-        cardIssuedDate = ""
     }
 
     private fun sendCommand(reader: BluetoothReader, command: ByteArray): Boolean {
@@ -86,25 +82,24 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
         val response = apdu.toHexString()
 
         if (commandPointer === APDU_1) {
-            if (response.startsWith("61 ")) {
+            if (response.startsWith("61")) {
                 if (!sendCommand(reader, APDU_2)) return null
             } else {
                 reset()
                 return null
             }
         } else if (commandPointer === APDU_2) {
-            if (response.startsWith("61 0D")) {
+            if (response.startsWith("610D")) {
                 if (!sendCommand(reader, APDU_3)) return null
             } else {
                 reset()
                 return null
             }
         } else if (commandPointer === APDU_3) {
-            if (response.endsWith("90 00")) {
-                val id = ByteArray(13)
-                System.arraycopy(apdu, 0, id, 0, id.size)
-                cardNumber = String(id)
-                cardID = String(id)
+            if (response.endsWith("9000")) {
+                val id = apdu.copyOf(13)
+                cardNumber = id.decodeToString()
+                cardID = id.decodeToString()
 
                 if (!sendCommand(reader, APDU_4)) return null
             } else {
@@ -112,17 +107,16 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                 return null
             }
         } else if (commandPointer === APDU_4) {
-            if (response.startsWith("61 D1")) {
+            if (response.startsWith("61D1")) {
                 if (!sendCommand(reader, APDU_5)) return null
             } else {
                 reset()
                 return null
             }
         } else if (commandPointer === APDU_5) {
-            if (response.endsWith("90 00")) {
-                val name = ByteArray(100)
-                System.arraycopy(apdu, 100, name, 0, name.size)
-                val nameArray = String(name).split("#")
+            if (response.endsWith("9000")) {
+                val name = apdu.copyOfRange(100, 200)
+                val nameArray = name.decodeToString().split("#")
                 cardName = nameArray.first()
                 if (nameArray.size > 1) {
                     for (i in 1 until nameArray.size) {
@@ -133,16 +127,17 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                 }
                 cardName = cardName.trim()
 
-                val birthYear = ByteArray(4)
-                System.arraycopy(apdu, 200, birthYear, 0, birthYear.size)
+                val birthYear = apdu.copyOfRange(200, 204).decodeToString().toInt() - 543
                 // From Thai Year to R.O.C. Year
-                val year = String(birthYear).toInt() - 2454
-                val birthDate = ByteArray(4)
-                System.arraycopy(apdu, 204, birthDate, 0, birthDate.size)
-                cardBirth = String.format("%03d", year) + String(birthDate)
+                val birthDate = "$birthYear${apdu.copyOfRange(204, 208).decodeToString()}"
+                cardBirth = listOf(
+                    birthDate.substring(0..3),
+                    birthDate.substring(4..5),
+                    birthDate.substring(6..7)
+                ).joinToString("-")
 
                 val genderByte = apdu[208]
-                val genderChar = genderByte.toChar()
+                val genderChar = genderByte.toInt().toChar()
                 this.cardGender = when (genderChar) {
                     '1' -> Gender.MALE
                     '2' -> Gender.FEMALE
@@ -155,54 +150,21 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                 return null
             }
         } else if (commandPointer === APDU_6) {
-            if (response.startsWith("61 12")) {
+            if (response.startsWith("6112")) {
                 if (!sendCommand(reader, APDU_7)) return null
             } else {
                 reset()
                 return null
             }
         } else if (commandPointer === APDU_7) {
-            if (response.endsWith("90 00")) {
-                val yearArray = ByteArray(4)
-                System.arraycopy(apdu, 0, yearArray, 0, yearArray.size)
+            if (response.endsWith("9000")) {
                 // From Thai Year to A.D.
-                var year = String(yearArray).toInt() - 543
-                val dateArray = ByteArray(4)
-                System.arraycopy(apdu, 4, dateArray, 0, dateArray.size)
-                cardIssuedDate = "$year${String(dateArray)}"
+                val issuedYear = apdu.copyOf(4).decodeToString().toInt() - 543
+                val issuedDate = "$issuedYear${apdu.copyOfRange(4, 8).decodeToString()}"
 
-                // Expired date
-                System.arraycopy(apdu, 8, yearArray, 0, yearArray.size)
                 // From Thai Year to A.D.
-                year = String(yearArray).toInt() - 543
-                System.arraycopy(apdu, 12, dateArray, 0, dateArray.size)
-                // [Issued]/[Expired], 20140512/20230324
-                cardIssuedDate += "/" + year + String(dateArray)
-
-                val birthYear = 1911 + cardBirth.substring(0..2).toInt()
-                val birthMonth = cardBirth.substring(3..4)
-                val birthDay = cardBirth.substring(5..6)
-                val issuedYear = cardIssuedDate.substring(0..3)
-                val issuedMonth = cardIssuedDate.substring(4..5)
-                val issuedDay = cardIssuedDate.substring(6..7)
-                val expiredYear = cardIssuedDate.substring(9..12)
-                val expiredMonth = cardIssuedDate.substring(13..14)
-                val expiredDay = cardIssuedDate.substring(15..16)
-                val birthday = listOf(
-                    birthYear,
-                    birthMonth,
-                    birthDay
-                ).joinToString("-")
-                val issuedDate = listOf(
-                    issuedYear,
-                    issuedMonth,
-                    issuedDay
-                ).joinToString("-")
-                val expiredDate = listOf(
-                    expiredYear,
-                    expiredMonth,
-                    expiredDay
-                ).joinToString("-")
+                val expiredYear = apdu.copyOfRange(8, 12).decodeToString().toInt() - 543
+                val expiredDate = "$expiredYear${apdu.copyOfRange(12, 16).decodeToString()}"
 
                 return AcsResponseModel(
                     cardNumber,
@@ -210,9 +172,17 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                     cardName,
                     cardGender,
                     CardType.HEALTH_CARD,
-                    birthday,
-                    issuedDate,
-                    expiredDate
+                    cardBirth,
+                    listOf(
+                        issuedDate.substring(0..3),
+                        issuedDate.substring(4..5),
+                        issuedDate.substring(6..7)
+                    ).joinToString("-"),
+                    listOf(
+                        expiredDate.substring(0..3),
+                        expiredDate.substring(4..5),
+                        expiredDate.substring(6..7)
+                    ).joinToString("-")
                 )
             } else {
                 reset()
@@ -226,6 +196,4 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
 
         return AcsResponseModel()
     }
-
-
 }

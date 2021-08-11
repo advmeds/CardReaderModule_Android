@@ -61,8 +61,14 @@ public class AcsUsbDevice(
 
                     val result = try {
                         val decoders = when (cardSlot) {
-                            SMART_CARD_SLOT -> usbDecoders
-                            NFC_CARD_SLOT -> nfcDecoders
+                            SMART_CARD_SLOT -> {
+                                require(usbDecoders.isNotEmpty()) { "The USB decoders must not be empty" }
+                                usbDecoders
+                            }
+                            NFC_CARD_SLOT -> {
+                                require(nfcDecoders.isNotEmpty()) { "The NFC decoders must not be empty" }
+                                nfcDecoders
+                            }
                             else -> emptyArray()
                         }
 

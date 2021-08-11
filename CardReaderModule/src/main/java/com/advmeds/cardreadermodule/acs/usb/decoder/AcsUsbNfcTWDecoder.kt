@@ -3,6 +3,7 @@ package com.advmeds.cardreadermodule.acs.usb.decoder
 import com.acs.smartcard.Reader
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
+import com.advmeds.cardreadermodule.acs.sendControl
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
@@ -17,15 +18,10 @@ public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
             cardType = CardType.STAFF_CARD
         )
 
-        val response = ByteArray(300)
-
-        reader.control(
+        val response = reader.sendControl(
             AcsUsbDevice.NFC_CARD_SLOT,
             Reader.IOCTL_CCID_ESCAPE,
-            READ_NFC_CARD_NO,
-            READ_NFC_CARD_NO.size,
-            response,
-            response.size
+            READ_NFC_CARD_NO
         )
 
         val resultString = convertNfcBytesToHex(response)

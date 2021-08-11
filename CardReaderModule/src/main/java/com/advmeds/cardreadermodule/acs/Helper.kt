@@ -1,12 +1,13 @@
 package com.advmeds.cardreadermodule.acs
 
+import com.acs.smartcard.Reader
 import kotlin.experimental.xor
 
 /** Converts the byte array to HEX string. */
-fun ByteArray.toHexString() = joinToString(" ") { String.format("%02X", it) }
+fun ByteArray.toHexString() = joinToString("") { String.format("%02X", it) }
 
 val Byte.isHexNumber: Boolean
-    get() = when(this.toChar()) {
+    get() = when (this.toChar()) {
         in '0'..'9' -> true
         in 'A'..'F' -> true
         in 'a'..'f' -> true
@@ -39,4 +40,42 @@ fun String.hexStringToByteArray(): ByteArray {
         i += 2
     }
     return ret
+}
+
+fun Reader.sendApdu(
+    slotNum: Int,
+    apdu: ByteArray,
+    bufferSize: Int = DEFAULT_BUFFER_SIZE
+): ByteArray {
+    val buffer = ByteArray(bufferSize)
+
+    val responseSize = transmit(
+        slotNum,
+        apdu,
+        apdu.size,
+        buffer,
+        buffer.size
+    )
+
+    return buffer.copyOf(responseSize)
+}
+
+fun Reader.sendControl(
+    slotNum: Int,
+    controlCode: Int,
+    apdu: ByteArray,
+    bufferSize: Int = DEFAULT_BUFFER_SIZE
+): ByteArray {
+    val buffer = ByteArray(bufferSize)
+
+    val responseSize = control(
+        slotNum,
+        controlCode,
+        apdu,
+        apdu.size,
+        buffer,
+        buffer.size
+    )
+
+    return buffer.copyOf(responseSize)
 }

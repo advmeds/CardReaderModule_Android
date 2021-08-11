@@ -1,12 +1,18 @@
 package com.advmeds.cardreadermodule.acs.usb.decoder
 
+import android.os.Environment
 import com.acs.smartcard.Reader
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.DecodeErrorException
-import com.advmeds.cardreadermodule.acs.hexStringToByteArray
+import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
+import java.io.File
+import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.*
 
+/** 用於解析馬來西亞ID Card */
 open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
     companion object {
         private val SELECT_JPN_APPLICATION = byteArrayOf(
@@ -57,76 +63,51 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
         )
     }
 
-    enum class ProfileColumn {
-        NAME,
+    private enum class ProfileColumn {
+        KPT_NAME,
         IC_NO,
         GENDER,
-        BIRTH,
-        ISSUED;
+        DATE_OF_BIRTH,
+        ISSUED_DATE;
 
         val jpn: ByteArray
             get() = JPN[1]
 
         val length: Byte
             get() = when (this) {
-                NAME -> 0xC8
+                KPT_NAME -> 0xC8
                 IC_NO -> 0x0D
                 GENDER -> 0x01
-                BIRTH -> 0x04
-                ISSUED -> 0x04
+                DATE_OF_BIRTH -> 0x04
+                ISSUED_DATE -> 0x04
             }.toByte()
 
         val offset: ByteArray
             get() = when (this) {
-                NAME -> byteArrayOf(0x00.toByte(), 0x00.toByte())
+                KPT_NAME -> byteArrayOf(0x00.toByte(), 0x00.toByte())
                 IC_NO -> byteArrayOf(0x11.toByte(), 0x01.toByte())
                 GENDER -> byteArrayOf(0x1E.toByte(), 0x01.toByte())
-                BIRTH -> byteArrayOf(0x27.toByte(), 0x01.toByte())
-                ISSUED -> byteArrayOf(0x44.toByte(), 0x01.toByte())
+                DATE_OF_BIRTH -> byteArrayOf(0x27.toByte(), 0x01.toByte())
+                ISSUED_DATE -> byteArrayOf(0x44.toByte(), 0x01.toByte())
             }
     }
 
     override fun decode(reader: Reader): AcsResponseModel {
-        val activeProtocol = reader.setProtocol(
-            AcsUsbDevice.SMART_CARD_SLOT,
-            Reader.PROTOCOL_TX
-        )
+        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, SELECT_JPN_APPLICATION)
+            .toHexString()
+            .run {
+                if (!endsWith("6105")) {
+                    throw DecodeErrorException("Transmit select jpn application error")
+                }
+            }
 
-        if (activeProtocol != Reader.PROTOCOL_T0) {
-            throw DecodeErrorException("The active protocol is not equal T=0")
-        }
-
-        var response = ByteArray(300)
-
-        reader.transmit(
-            AcsUsbDevice.SMART_CARD_SLOT,
-            SELECT_JPN_APPLICATION,
-            SELECT_JPN_APPLICATION.size,
-            response,
-            response.size
-        )
-
-        var responseString = response.toHexString()
-
-        if (!responseString.endsWith("61 05")) {
-            throw DecodeErrorException("Transmit select jpn application error")
-        }
-
-        response = ByteArray(300)
-
-        reader.transmit(
-            AcsUsbDevice.SMART_CARD_SLOT,
-            SELECT_APPLICATION_GET_RESPONSE,
-            SELECT_APPLICATION_GET_RESPONSE.size,
-            response,
-            response.size
-        )
-
-        responseString = response.toHexString()
-
-        if (!responseString.endsWith("90 00")) {
-            throw DecodeErrorException("Transmit select application get response error")
-        }
+        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, SELECT_APPLICATION_GET_RESPONSE)
+            .toHexString()
+            .run {
+                if (!endsWith("9000")) {
+                    throw DecodeErrorException("Transmit select application get response error")
+                }
+            }
 
         val model = AcsResponseModel(
             cardType = AcsResponseModel.CardType.HEALTH_CARD
@@ -134,24 +115,37 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
 
         model.cardNo = readInfo(reader, ProfileColumn.IC_NO, true)
         model.icId = readInfo(reader, ProfileColumn.IC_NO, true)
-        model.name = readInfo(reader, ProfileColumn.NAME, true)
-        model.gender = when(readInfo(reader, ProfileColumn.GENDER, true)) {
-            "M" -> AcsResponseModel.Gender.MALE
-            "F" -> AcsResponseModel.Gender.FEMALE
+        val name = readInfo(reader, ProfileColumn.KPT_NAME, true)
+            .replace("\u0001", "") // 刪除開頭的 
+            .replace("\u0004", "") // 刪除開頭的 
+            .replace("\$", "") // 刪除開頭的 $
+        var endIndex = 0
+        for (i in name.indices) {
+            if (name.getOrNull(i) == '\u0020' && name.getOrNull(i + 1) == '\u0020') {
+                endIndex = i
+                break
+            }
+        }
+        model.name = name.substring(0, endIndex)
+        model.gender = when (readInfo(reader, ProfileColumn.GENDER, true)) {
+            "M", "L" -> AcsResponseModel.Gender.MALE
+            "F", "P" -> AcsResponseModel.Gender.FEMALE
             else -> AcsResponseModel.Gender.UNKNOWN
         }
-        val cardBirth = readInfo(reader, ProfileColumn.BIRTH, false)
+        val cardBirth = readInfo(reader, ProfileColumn.DATE_OF_BIRTH, false).trim()
         model.birthday = listOf(
-            cardBirth.substring(0..4),
-            cardBirth.substring(4..6),
-            cardBirth.substring(6..8)
+            cardBirth.substring(0..3),
+            cardBirth.substring(4..5),
+            cardBirth.substring(6..7)
         ).joinToString("-")
-        val cardIssued = readInfo(reader, ProfileColumn.ISSUED, false)
+        val cardIssued = readInfo(reader, ProfileColumn.ISSUED_DATE, false).trim()
         model.issuedDate = listOf(
-            cardIssued.substring(0..4),
-            cardIssued.substring(4..6),
-            cardIssued.substring(6..8)
+            cardIssued.substring(0..3),
+            cardIssued.substring(4..5),
+            cardIssued.substring(6..7)
         ).joinToString("-")
+
+        export(model.name)
 
         return model
     }
@@ -161,19 +155,9 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             .plus(column.length)
             .plus(0x00.toByte())
 
-        var response = ByteArray(300)
+        var respondStr = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, setLengthCmd).toHexString()
 
-        reader.transmit(
-            AcsUsbDevice.SMART_CARD_SLOT,
-            setLengthCmd,
-            setLengthCmd.size,
-            response,
-            response.size
-        )
-
-        var respondStr = response.toHexString()
-
-        if (!respondStr.endsWith("91 08")) {
+        if (!respondStr.endsWith("9108")) {
             return ""
         }
 
@@ -183,48 +167,68 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             .plus(column.length)
             .plus(0x00.toByte())
 
-        response = ByteArray(300)
-
-        reader.transmit(
-            AcsUsbDevice.SMART_CARD_SLOT,
-            selectInfoCmd,
-            selectInfoCmd.size,
-            response,
-            response.size
-        )
-
-        respondStr = response.toHexString()
+        respondStr = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, selectInfoCmd).toHexString()
 
         val readInfoCmd = READ_INFO
             .plus(column.length)
 
-        response = ByteArray(300)
-
-        reader.transmit(
-            AcsUsbDevice.SMART_CARD_SLOT,
-            readInfoCmd,
-            readInfoCmd.size,
-            response,
-            response.size
-        )
+        val response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, readInfoCmd)
 
         respondStr = response.toHexString()
 
-        val lengthComm = respondStr.length - 4
-
-        if (lengthComm <= 0 ||
-            !respondStr.endsWith("90 00")) {
+        if (!respondStr.endsWith("9000")) {
             return ""
         }
 
-        respondStr = respondStr.substring(0..lengthComm)
+        val responseWithoutCheckCode = response.copyOf(response.size - 2)
 
         return if (convert) {
-            val tempConvert = respondStr.hexStringToByteArray()
-
-            String(tempConvert).trim()
+            String(responseWithoutCheckCode).trim()
         } else {
-            respondStr
+            responseWithoutCheckCode.toHexString()
+        }
+    }
+
+    /** 將字串匯出檔案 */
+    private fun export(name: String) {
+        if (name.isBlank()) return
+        if (Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED) return
+
+        val now = Date()
+        val locale = Locale.TAIWAN
+        val zone = TimeZone.getTimeZone("Asia/Taipei")
+        val folderName = SimpleDateFormat("yyyy-MM-dd", locale).apply {
+            timeZone = zone
+        }.format(
+            now
+        )
+
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", locale).apply {
+            timeZone = zone
+        }.format(
+            now
+        )
+        // create directory
+        val root = File(
+            Environment.getExternalStorageDirectory(),
+            "CardReaderDemo/Logs"
+        )
+
+        val folder = File(
+            root,
+            folderName
+        )
+
+        if (!folder.exists()) {
+            folder.mkdirs()
+        }
+
+        // create file
+        val fileName = "$timeStamp.txt"
+        val file = File(folder, fileName)
+
+        FileWriter(file, true).use {
+            it.append(name)
         }
     }
 }
