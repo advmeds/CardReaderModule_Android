@@ -41,7 +41,7 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
 
     private val acsBaseDevice = AcsBaseDevice(arrayOf(AcsBleTWDecoder()))
 
-    private val acsBaseCallback: AcsBaseCallback? = object : AcsBaseCallback {
+    private val acsBaseCallback: AcsBaseCallback = object : AcsBaseCallback {
         override fun onDeviceStatusChanged(status: AcsBleDeviceStatus) {
             Log.d("AcsBaseCallback", "onDeviceStatusChanged: $status")
         }

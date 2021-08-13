@@ -8,15 +8,16 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Bundle
-import android.util.Log
 import android.view.MenuItem
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbCallback
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
-import com.advmeds.cardreadermodule.acs.usb.decoder.*
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbJPNDecoder
 import com.google.android.material.snackbar.Snackbar
+import java.text.SimpleDateFormat
 import java.util.*
 
 class USBActivity : AppCompatActivity() {
@@ -24,41 +25,41 @@ class USBActivity : AppCompatActivity() {
         private const val USB_PERMISSION = "${BuildConfig.APPLICATION_ID}.USB_PERMISSION"
     }
 
+    private val mainScroll: ScrollView by lazy { findViewById(R.id.main_scroll) }
+    private val logTextView: TextView by lazy { findViewById(R.id.log_text_view) }
+
     private val usbManager by lazy { getSystemService(Context.USB_SERVICE) as UsbManager }
 
     private val acsUsbDevice by lazy {
         AcsUsbDevice(
             usbManager,
-            arrayOf(AcsUsbTWDecoder()),
-            arrayOf(AcsUsbNfcTWDecoder())
+            arrayOf(AcsUsbJPNDecoder())
         )
     }
 
     private val acsUsbCallback = object : AcsUsbCallback {
         override fun onConnectDevice() {
-            Log.d("AcsUsbCallback", "onConnectDevice")
+            appendLog("${acsUsbDevice.connectedDevice?.productName} connecting")
         }
 
         override fun onFailToConnectDevice() {
-            Log.d("AcsUsbCallback", "onFailToConnectDevice")
+            appendLog("Failed to connect ${acsUsbDevice.connectedDevice?.productName}")
         }
 
         override fun onCardPresent() {
-            Log.d("AcsUsbCallback", "onCardPresent")
+            appendLog("The card is present")
         }
 
         override fun onReceiveResult(result: Result<AcsResponseModel>) {
-            Log.d("AcsUsbCallback", "onReceiveResult: $result")
-
-            MaterialAlertDialogBuilder(this@USBActivity)
-                .setTitle("onReceiveResult")
-                .setMessage("$result")
-                .setPositiveButton("OK", null)
-                .show()
+            result.onSuccess {
+                appendLog(it.toString())
+            }.onFailure {
+                appendLog(it.stackTraceToString())
+            }
         }
 
         override fun onCardAbsent() {
-            Log.d("AcsUsbCallback", "onCardAbsent")
+            appendLog("The card is absent")
         }
     }
 
@@ -81,24 +82,16 @@ class USBActivity : AppCompatActivity() {
                     }
                 }
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                    connectUSBDevice(usbDevice)
+                    appendLog("${usbDevice.productName} is attached")
 
-                    Snackbar.make(
-                        findViewById(android.R.id.content),
-                        "${usbDevice.productName}, ACTION_USB_DEVICE_ATTACHED",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    connectUSBDevice(usbDevice)
                 }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    appendLog("${usbDevice.productName} is detached")
+
                     if (usbDevice.productId == acsUsbDevice.connectedDevice?.productId) {
                         acsUsbDevice.disconnect()
                     }
-
-                    Snackbar.make(
-                        findViewById(android.R.id.content),
-                        "${usbDevice.productName}, ACTION_USB_DEVICE_DETACHED",
-                        Snackbar.LENGTH_LONG
-                    ).show()
                 }
             }
         }
@@ -122,7 +115,11 @@ class USBActivity : AppCompatActivity() {
 
         acsUsbDevice.callback = acsUsbCallback
 
-        acsUsbDevice.supportedDevice?.also { connectUSBDevice(it) }
+        acsUsbDevice.supportedDevice?.also {
+            appendLog("${it.productName} is attached")
+
+            connectUSBDevice(it)
+        }
     }
 
     private fun connectUSBDevice(device: UsbDevice) {
@@ -131,6 +128,14 @@ class USBActivity : AppCompatActivity() {
         )
 
         usbManager.requestPermission(device, mPermissionIntent)
+    }
+
+    private fun appendLog(log: String) {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.TAIWAN)
+        logTextView.append(sdf.format(Date()).plus(": ").plus(log).plus("\n"))
+        mainScroll.post {
+            mainScroll.fullScroll(ScrollView.FOCUS_DOWN)
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
