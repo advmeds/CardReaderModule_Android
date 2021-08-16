@@ -52,6 +52,12 @@ public class AcsUsbDevice(
     /** 設置Reader的Listener */
     private fun setupReader() {
         mReader.setOnStateChangeListener { cardSlot, _, cardAction ->
+            // 部分讀卡機在連線成功後，就算沒有插入卡片仍然會觸發插入的callback，並且cardSlot為2，
+            // 故過濾未知的cardSlot。
+            if (cardSlot != SMART_CARD_SLOT && cardSlot != NFC_CARD_SLOT) {
+                return@setOnStateChangeListener
+            }
+
             when (cardAction) {
                 Reader.CARD_PRESENT -> { // 卡片插入
                     runOnMainThread {
