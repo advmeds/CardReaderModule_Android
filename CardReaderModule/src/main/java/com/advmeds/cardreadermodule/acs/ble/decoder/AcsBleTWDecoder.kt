@@ -52,16 +52,16 @@ public class AcsBleTWDecoder : AcsBleBaseDecoder {
             val issuedYear = 1911 + cardIssuedDate.substring(0..2).toInt()
             val issuedMonth = cardIssuedDate.substring(3..4)
             val issuedDay = cardIssuedDate.substring(5..6)
-            val birthday = listOf(
-                birthYear,
+            val birthday = AcsResponseModel.DateBean(
+                birthYear.toString(),
                 birthMonth,
                 birthDay
-            ).joinToString("-")
-            val issuedDate = listOf(
-                issuedYear,
+            )
+            val issuedDate = AcsResponseModel.DateBean(
+                issuedYear.toString(),
                 issuedMonth,
                 issuedDay
-            ).joinToString("-")
+            )
 
             val gender = when(cardGender) {
                 "M" -> Gender.MALE

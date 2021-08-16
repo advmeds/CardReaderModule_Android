@@ -1,16 +1,11 @@
 package com.advmeds.cardreadermodule.acs.usb.decoder
 
-import android.os.Environment
 import com.acs.smartcard.Reader
 import com.advmeds.cardreadermodule.acs.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
-import java.io.File
-import java.io.FileWriter
-import java.text.SimpleDateFormat
-import java.util.*
 
 /** 用於解析馬來西亞ID Card */
 open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
@@ -133,17 +128,17 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             else -> AcsResponseModel.Gender.UNKNOWN
         }
         val cardBirth = readInfo(reader, ProfileColumn.DATE_OF_BIRTH, false).trim()
-        model.birthday = listOf(
+        model.birthday = AcsResponseModel.DateBean(
             cardBirth.substring(0..3),
             cardBirth.substring(4..5),
             cardBirth.substring(6..7)
-        ).joinToString("-")
+        )
         val cardIssued = readInfo(reader, ProfileColumn.ISSUED_DATE, false).trim()
-        model.issuedDate = listOf(
+        model.issuedDate = AcsResponseModel.DateBean(
             cardIssued.substring(0..3),
             cardIssued.substring(4..5),
             cardIssued.substring(6..7)
-        ).joinToString("-")
+        )
 
         return model
     }

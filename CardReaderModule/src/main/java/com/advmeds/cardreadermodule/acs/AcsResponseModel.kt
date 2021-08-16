@@ -22,14 +22,14 @@ public data class AcsResponseModel(
      */
     public var cardType: CardType = CardType.UNKNOWN,
 
-    /** 生日。格式："yyyy-MM-dd" */
-    public var birthday: String? = null,
+    /** 生日 */
+    public var birthday: DateBean? = null,
 
-    /** 發卡日期。格式："yyyy-MM-dd" */
-    public var issuedDate: String? = null,
+    /** 發卡日期 */
+    public var issuedDate: DateBean? = null,
 
-    /** 到期日期。格式："yyyy-MM-dd" */
-    public var expiredDate: String? = null
+    /** 到期日期 */
+    public var expiredDate: DateBean? = null
 ) {
     /** 性別 */
     public enum class Gender(val rawValue: Int) {
@@ -64,6 +64,16 @@ public data class AcsResponseModel(
                 values().find { it.rawValue == rawValue }
         }
     }
+
+    /** 日期 */
+    public data class DateBean(
+        /** 年份(西元) */
+        val year: String,
+        /** 月份 */
+        val month: String,
+        /** 一個月的第幾天 */
+        val day: String
+    )
 
     /**
      * 判斷Model是否為空

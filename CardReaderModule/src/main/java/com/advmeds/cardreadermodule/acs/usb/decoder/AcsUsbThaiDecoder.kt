@@ -102,11 +102,11 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
                 // From Thai Year to A.D.
                 val birthYear = response.copyOfRange(200, 204).decodeToString().toInt() - 543
                 val birthDate = "$birthYear${response.copyOfRange(204, 208).decodeToString()}"
-                model.birthday = listOf(
+                model.birthday = AcsResponseModel.DateBean(
                     birthDate.substring(0..3),
                     birthDate.substring(4..5),
                     birthDate.substring(6..7)
-                ).joinToString("-")
+                )
 
                 val genderByte = response[208]
                 val cardGender = when (genderByte.toInt().toChar()) {
@@ -130,16 +130,16 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
                     val expiredYear = response.copyOfRange(8, 12).decodeToString().toInt() - 543
                     val expiredDate = "$expiredYear${response.copyOfRange(12, 16).decodeToString()}"
 
-                    model.issuedDate = listOf(
+                    model.issuedDate = AcsResponseModel.DateBean(
                         issuedDate.substring(0..3),
                         issuedDate.substring(4..5),
                         issuedDate.substring(6..7)
-                    ).joinToString("-")
-                    model.expiredDate = listOf(
+                    )
+                    model.expiredDate = AcsResponseModel.DateBean(
                         expiredDate.substring(0..3),
                         expiredDate.substring(4..5),
                         expiredDate.substring(6..7)
-                    ).joinToString("-")
+                    )
                 }
             }
         }

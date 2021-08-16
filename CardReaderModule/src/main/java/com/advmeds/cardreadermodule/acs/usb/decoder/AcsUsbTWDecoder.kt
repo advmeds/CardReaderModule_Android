@@ -64,16 +64,16 @@ public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
         val birthWest = 1911 + cardBirth.substring(0..2).toInt()
         val issuedWest = 1911 + cardIssuedDate.substring(0..2).toInt()
 
-        val birthday = listOf(
-            birthWest,
+        val birthday = AcsResponseModel.DateBean(
+            birthWest.toString(),
             cardBirth.substring(3..4),
             cardBirth.substring(5..6)
-        ).joinToString("-")
-        val issuedDate = listOf(
-            issuedWest,
+        )
+        val issuedDate = AcsResponseModel.DateBean(
+            issuedWest.toString(),
             cardIssuedDate.substring(3..4),
             cardIssuedDate.substring(5..6)
-        ).joinToString("-")
+        )
 
         return AcsResponseModel(
             cardNo = cardNumber,

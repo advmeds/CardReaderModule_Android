@@ -48,7 +48,7 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
     private var cardNumber = ""
     private var cardName = ""
     private var cardID = ""
-    private var cardBirth = ""
+    private var cardBirth: AcsResponseModel.DateBean? = null
     private var cardGender = Gender.UNKNOWN
 
     private fun reset() {
@@ -57,7 +57,7 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
         cardNumber = ""
         cardName = ""
         cardID = ""
-        cardBirth = ""
+        cardBirth = null
         cardGender = Gender.UNKNOWN
     }
 
@@ -130,11 +130,11 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                 val birthYear = apdu.copyOfRange(200, 204).decodeToString().toInt() - 543
                 // From Thai Year to R.O.C. Year
                 val birthDate = "$birthYear${apdu.copyOfRange(204, 208).decodeToString()}"
-                cardBirth = listOf(
+                cardBirth = AcsResponseModel.DateBean(
                     birthDate.substring(0..3),
                     birthDate.substring(4..5),
                     birthDate.substring(6..7)
-                ).joinToString("-")
+                )
 
                 val genderByte = apdu[208]
                 val genderChar = genderByte.toInt().toChar()
@@ -173,16 +173,16 @@ public class AcsBleThaiDecoder : AcsBleBaseDecoder {
                     cardGender,
                     CardType.HEALTH_CARD,
                     cardBirth,
-                    listOf(
+                    AcsResponseModel.DateBean(
                         issuedDate.substring(0..3),
                         issuedDate.substring(4..5),
                         issuedDate.substring(6..7)
-                    ).joinToString("-"),
-                    listOf(
+                    ),
+                    AcsResponseModel.DateBean(
                         expiredDate.substring(0..3),
                         expiredDate.substring(4..5),
                         expiredDate.substring(6..7)
-                    ).joinToString("-")
+                    )
                 )
             } else {
                 reset()
