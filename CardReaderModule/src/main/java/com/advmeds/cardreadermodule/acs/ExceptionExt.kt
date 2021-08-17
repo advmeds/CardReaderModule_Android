@@ -4,12 +4,12 @@ package com.advmeds.cardreadermodule.acs
 public class InvalidCardException : Exception("The card is invalid, because failed to power on the card")
 
 /** 在解析資料時，傳送command後得到失敗的結果，或是設定協定失敗，會拋出此異常 */
-public class DecodeErrorException(override val message: String?) : Exception()
+public class DecodeErrorException(message: String?) : Exception(message)
 
 /** 當解析資料後取得到的response為null時，會拋出此異常 */
 public class NullResponseException(
     /** 錯誤訊息 */
-    override val message: String? = "The response is null",
+    message: String? = "The response is null",
     /** 造成的原因 */
-    override val cause: Throwable? = null
-) : Exception()
+    cause: Throwable? = null
+) : Exception(message, cause)

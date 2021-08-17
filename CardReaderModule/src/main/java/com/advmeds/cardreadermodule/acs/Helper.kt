@@ -7,7 +7,7 @@ import kotlin.experimental.xor
 fun ByteArray.toHexString() = joinToString("") { String.format("%02X", it) }
 
 val Byte.isHexNumber: Boolean
-    get() = when (this.toChar()) {
+    get() = when (this.toInt().toChar()) {
         in '0'..'9' -> true
         in 'A'..'F' -> true
         in 'a'..'f' -> true

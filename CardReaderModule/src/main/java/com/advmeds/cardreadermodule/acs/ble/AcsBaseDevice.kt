@@ -16,21 +16,21 @@ public class AcsBaseDevice(
     private val bleDecoder: Array<AcsBleBaseDecoder>
     ) {
     /** 設備狀態 */
-    public enum class AcsBleDeviceStatus(rawValue: Int) {
+    public enum class AcsBleDeviceStatus {
         /** 未知 */
-        UNKNOWN(0),
+        UNKNOWN,
 
         /** 連線中 */
-        CONNECTING(1),
+        CONNECTING,
 
         /** 已連線，並且設置好所有設定 */
-        CONNECTED(2),
+        CONNECTED,
 
         /** 斷線中 */
-        DISCONNECTING(3),
+        DISCONNECTING,
 
         /** 已斷線 */
-        DISCONNECTED(4);
+        DISCONNECTED;
     }
 
     public var callback: AcsBaseCallback? = null
