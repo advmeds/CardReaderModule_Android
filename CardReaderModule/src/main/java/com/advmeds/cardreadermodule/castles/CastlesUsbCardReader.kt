@@ -276,7 +276,7 @@ public class CastlesUsbCardReader(
                 }
 
             val response = sendApdu(slot, READ_PROFILE_APDU)
-
+print("")
             val cardNumber = response.copyOfRange(10, 22).decodeToString()
             val cardName = response.copyOfRange(22, 42).toString(Charset.forName("Big5"))
                 .replace("\u0000", "") // 有些健保卡會在姓名長度不足的情況下透過"\u0000"來補字，這會造成web上顯示亂碼
