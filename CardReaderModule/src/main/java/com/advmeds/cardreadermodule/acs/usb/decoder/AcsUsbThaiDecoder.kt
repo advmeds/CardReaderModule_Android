@@ -1,10 +1,10 @@
 package com.advmeds.cardreadermodule.acs.usb.decoder
 
 import com.acs.smartcard.Reader
-import com.advmeds.cardreadermodule.acs.AcsResponseModel
-import com.advmeds.cardreadermodule.acs.AcsResponseModel.CardType
-import com.advmeds.cardreadermodule.acs.AcsResponseModel.Gender
-import com.advmeds.cardreadermodule.acs.DecodeErrorException
+import com.advmeds.cardreadermodule.AcsResponseModel
+import com.advmeds.cardreadermodule.AcsResponseModel.CardType
+import com.advmeds.cardreadermodule.AcsResponseModel.Gender
+import com.advmeds.cardreadermodule.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice

@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import com.advmeds.cardreadermodule.acs.AcsResponseModel
+import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseCallback
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice.AcsBleDeviceStatus

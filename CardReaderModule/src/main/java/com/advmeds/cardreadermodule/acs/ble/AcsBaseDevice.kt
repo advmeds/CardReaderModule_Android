@@ -7,7 +7,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.acs.bluetooth.*
-import com.advmeds.cardreadermodule.acs.NullResponseException
+import com.advmeds.cardreadermodule.NullResponseException
 import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleBaseDecoder
 import com.advmeds.cardreadermodule.acs.hexStringToByteArray
 import java.lang.ref.WeakReference

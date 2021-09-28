@@ -12,7 +12,7 @@ import android.view.MenuItem
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.advmeds.cardreadermodule.acs.AcsResponseModel
+import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbCallback
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbJPNDecoder

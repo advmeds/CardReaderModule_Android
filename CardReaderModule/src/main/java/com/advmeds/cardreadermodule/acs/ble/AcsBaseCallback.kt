@@ -1,6 +1,6 @@
 package com.advmeds.cardreadermodule.acs.ble
 
-import com.advmeds.cardreadermodule.acs.AcsResponseModel
+import com.advmeds.cardreadermodule.AcsResponseModel
 
 public interface AcsBaseCallback {
     /**

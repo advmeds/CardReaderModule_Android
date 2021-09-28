@@ -1,4 +1,4 @@
-package com.advmeds.cardreadermodule.acs
+package com.advmeds.cardreadermodule
 
 /** 偵測到卡片插入設備後，執行powerOn回傳的值為null，會拋出此異常 */
 public class InvalidCardException : Exception("The card is invalid, because failed to power on the card")

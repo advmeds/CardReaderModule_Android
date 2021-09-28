@@ -6,8 +6,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.acs.smartcard.Reader
-import com.advmeds.cardreadermodule.acs.InvalidCardException
-import com.advmeds.cardreadermodule.acs.NullResponseException
+import com.advmeds.cardreadermodule.InvalidCardException
+import com.advmeds.cardreadermodule.NullResponseException
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbBaseDecoder
 import java.lang.ref.WeakReference
 

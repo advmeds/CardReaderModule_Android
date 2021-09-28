@@ -1,4 +1,4 @@
-package com.advmeds.cardreadermodule.acs
+package com.advmeds.cardreadermodule
 
 public data class AcsResponseModel(
     /** 卡號 */

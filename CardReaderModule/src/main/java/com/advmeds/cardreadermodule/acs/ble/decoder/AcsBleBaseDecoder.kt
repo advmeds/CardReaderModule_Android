@@ -1,7 +1,7 @@
 package com.advmeds.cardreadermodule.acs.ble.decoder
 
 import com.acs.bluetooth.BluetoothReader
-import com.advmeds.cardreadermodule.acs.AcsResponseModel
+import com.advmeds.cardreadermodule.AcsResponseModel
 
 public interface AcsBleBaseDecoder {
     /**

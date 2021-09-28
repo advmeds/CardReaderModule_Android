@@ -1,7 +1,7 @@
 package com.advmeds.cardreadermodule.acs.usb.decoder
 
 import com.acs.smartcard.Reader
-import com.advmeds.cardreadermodule.acs.AcsResponseModel
+import com.advmeds.cardreadermodule.AcsResponseModel
 
 public interface AcsUsbBaseDecoder {
     /**
