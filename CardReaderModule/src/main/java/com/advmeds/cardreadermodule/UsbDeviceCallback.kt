@@ -1,8 +1,6 @@
-package com.advmeds.cardreadermodule.acs.usb
+package com.advmeds.cardreadermodule
 
-import com.advmeds.cardreadermodule.AcsResponseModel
-
-public interface AcsUsbCallback {
+interface UsbDeviceCallback {
     /** 成功連線上設備 */
     fun onConnectDevice()
 

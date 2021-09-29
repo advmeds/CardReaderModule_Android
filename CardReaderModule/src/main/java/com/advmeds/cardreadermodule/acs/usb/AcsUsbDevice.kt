@@ -8,6 +8,7 @@ import android.util.Log
 import com.acs.smartcard.Reader
 import com.advmeds.cardreadermodule.InvalidCardException
 import com.advmeds.cardreadermodule.NullResponseException
+import com.advmeds.cardreadermodule.UsbDeviceCallback
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbBaseDecoder
 import java.lang.ref.WeakReference
 
@@ -23,9 +24,9 @@ public class AcsUsbDevice(
 
     private val mReader = Reader(mUsbManager)
 
-    public var callback: AcsUsbCallback? = null
+    public var callback: UsbDeviceCallback? = null
         set(value) {
-            field = WeakReference<AcsUsbCallback>(value).get()
+            field = WeakReference<UsbDeviceCallback>(value).get()
         }
 
     /** 取得可支援的USB裝置 */

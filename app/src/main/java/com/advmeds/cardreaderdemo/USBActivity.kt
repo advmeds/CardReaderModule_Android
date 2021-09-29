@@ -13,9 +13,10 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.advmeds.cardreadermodule.AcsResponseModel
-import com.advmeds.cardreadermodule.acs.usb.AcsUsbCallback
+import com.advmeds.cardreadermodule.UsbDeviceCallback
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbJPNDecoder
+import com.advmeds.cardreadermodule.castles.CastlesUsbDevice
 import com.google.android.material.snackbar.Snackbar
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,13 +38,43 @@ class USBActivity : AppCompatActivity() {
         )
     }
 
-    private val acsUsbCallback = object : AcsUsbCallback {
+    private val ezUsbDevice by lazy {
+        CastlesUsbDevice(this)
+    }
+
+    private val acsUsbCallback = object : UsbDeviceCallback {
         override fun onConnectDevice() {
             appendLog("${acsUsbDevice.connectedDevice?.productName} connecting")
         }
 
         override fun onFailToConnectDevice() {
             appendLog("Failed to connect ${acsUsbDevice.connectedDevice?.productName}")
+        }
+
+        override fun onCardPresent() {
+            appendLog("The card is present")
+        }
+
+        override fun onReceiveResult(result: Result<AcsResponseModel>) {
+            result.onSuccess {
+                appendLog(it.toString())
+            }.onFailure {
+                appendLog(it.stackTraceToString())
+            }
+        }
+
+        override fun onCardAbsent() {
+            appendLog("The card is absent")
+        }
+    }
+
+    private val ezUsbCallCallback = object : UsbDeviceCallback {
+        override fun onConnectDevice() {
+            appendLog("${ezUsbDevice.connectedDevice?.productName} connecting")
+        }
+
+        override fun onFailToConnectDevice() {
+            appendLog("Failed to connect ${ezUsbDevice.connectedDevice?.productName}")
         }
 
         override fun onCardPresent() {
@@ -71,7 +102,14 @@ class USBActivity : AppCompatActivity() {
                 USB_PERMISSION -> {
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         // user choose YES for your previously popup window asking for grant perssion for this usb device
-                        acsUsbDevice.connectDevice(usbDevice)
+                        when (usbDevice.productId) {
+                            acsUsbDevice.supportedDevice?.productId -> {
+                                acsUsbDevice.connectDevice(usbDevice)
+                            }
+                            ezUsbDevice.supportedDevice?.productId -> {
+                                ezUsbDevice.connectDevice(usbDevice)
+                            }
+                        }
                     } else {
                         // user choose NO for your previously popup window asking for grant perssion for this usb device
                         Snackbar.make(
@@ -89,8 +127,13 @@ class USBActivity : AppCompatActivity() {
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
                     appendLog("${usbDevice.productName} is detached")
 
-                    if (usbDevice.productId == acsUsbDevice.connectedDevice?.productId) {
-                        acsUsbDevice.disconnect()
+                    when (usbDevice.productId) {
+                        acsUsbDevice.connectedDevice?.productId -> {
+                            acsUsbDevice.disconnect()
+                        }
+                        ezUsbDevice.connectedDevice?.productId -> {
+                            ezUsbDevice.disconnect()
+                        }
                     }
                 }
             }
@@ -114,8 +157,14 @@ class USBActivity : AppCompatActivity() {
         )
 
         acsUsbDevice.callback = acsUsbCallback
-
         acsUsbDevice.supportedDevice?.also {
+            appendLog("${it.productName} is attached")
+
+            connectUSBDevice(it)
+        }
+
+        ezUsbDevice.callback = ezUsbCallCallback
+        ezUsbDevice.supportedDevice?.also {
             appendLog("${it.productName} is attached")
 
             connectUSBDevice(it)
@@ -152,6 +201,7 @@ class USBActivity : AppCompatActivity() {
         super.onDestroy()
 
         acsUsbDevice.disconnect()
+        ezUsbDevice.disconnect()
 
         try {
             unregisterReceiver(detectUsbDeviceReceiver)
