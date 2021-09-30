@@ -1,6 +1,6 @@
 package com.advmeds.cardreadermodule
 
-interface UsbDeviceCallback {
+public interface UsbDeviceCallback {
     /** 成功連線上設備 */
     fun onConnectDevice()
 

@@ -11,7 +11,7 @@ import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class CastlesUsbDevice(private val context: Context) {
+public class CastlesUsbDevice(private val context: Context) {
     private val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
     private val reader by lazy { CastlesUsbCardReader(usbManager) }
     private var cardIsPresent: Boolean = false
