@@ -76,6 +76,12 @@ public class CastlesUsbDevice(private val context: Context) {
                                     Result.failure(e)
                                 }
 
+                                try {
+                                    reader.powerOff()
+                                } catch (ignored: Exception) {
+
+                                }
+
                                 runOnMainThread {
                                     callback?.onReceiveResult(response)
                                 }

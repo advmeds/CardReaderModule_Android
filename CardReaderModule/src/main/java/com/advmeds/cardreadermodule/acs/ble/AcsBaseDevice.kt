@@ -172,6 +172,8 @@ public class AcsBaseDevice(
                 if (nowDecoderIndex != 0) {
                     onPowerOn()
                 } else {
+                    onPowerOff()
+
                     runOnMainThread {
                         callback?.onReceiveResult(Result.failure(NullResponseException()))
                     }
@@ -179,6 +181,8 @@ public class AcsBaseDevice(
             } else if (response.isEmpty()) { // Next step
 
             } else {
+                onPowerOff()
+
                 runOnMainThread {
                     callback?.onReceiveResult(Result.success(response))
                 }
@@ -217,6 +221,11 @@ public class AcsBaseDevice(
     /** Power on the card. */
     private fun onPowerOn() {
         mBluetoothReader?.powerOnCard()
+    }
+
+    /** Power off the card. */
+    private fun onPowerOff() {
+        mBluetoothReader?.powerOffCard()
     }
 
     /** 在主執行緒執行點什麼 */

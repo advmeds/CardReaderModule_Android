@@ -93,6 +93,12 @@ public class AcsUsbDevice(
                             }
                         }
 
+                        try {
+                            powerOffCard(cardSlot)
+                        } catch (ignored: Exception) {
+
+                        }
+
                         when (val response = responses.find { it.isSuccess }) {
                             null -> Result.failure(
                                 NullResponseException(
@@ -151,7 +157,7 @@ public class AcsUsbDevice(
     private fun powerOnCard(slotNum: Int): Boolean =
         mReader.power(slotNum, Reader.CARD_WARM_RESET) != null
 
-    private fun powerDownCard(slotNum: Int): Boolean =
+    private fun powerOffCard(slotNum: Int): Boolean =
         mReader.power(slotNum, Reader.CARD_POWER_DOWN) != null
 
     /** 在主執行緒執行點什麼 */

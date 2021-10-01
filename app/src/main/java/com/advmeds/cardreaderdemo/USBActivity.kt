@@ -16,6 +16,7 @@ import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.UsbDeviceCallback
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbJPNDecoder
+import com.advmeds.cardreadermodule.acs.usb.decoder.AcsUsbTWDecoder
 import com.advmeds.cardreadermodule.castles.CastlesUsbDevice
 import com.google.android.material.snackbar.Snackbar
 import java.text.SimpleDateFormat
@@ -34,7 +35,7 @@ class USBActivity : AppCompatActivity() {
     private val acsUsbDevice by lazy {
         AcsUsbDevice(
             usbManager,
-            arrayOf(AcsUsbJPNDecoder())
+            arrayOf(AcsUsbTWDecoder())
         )
     }
 
