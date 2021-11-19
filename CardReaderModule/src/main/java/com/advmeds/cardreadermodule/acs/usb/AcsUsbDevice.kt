@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.acs.smartcard.Reader
+import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.InvalidCardException
 import com.advmeds.cardreadermodule.NullResponseException
 import com.advmeds.cardreadermodule.UsbDeviceCallback
@@ -52,21 +53,21 @@ public class AcsUsbDevice(
 
     /** 設置Reader的Listener */
     private fun setupReader() {
-        mReader.setOnStateChangeListener { cardSlot, _, cardAction ->
+        mReader.setOnStateChangeListener { cardSlot, _, cardState ->
             // 部分讀卡機在連線成功後，就算沒有插入卡片仍然會觸發插入的callback，並且cardSlot為2，
             // 故過濾未知的cardSlot。
             if (cardSlot != SMART_CARD_SLOT && cardSlot != NFC_CARD_SLOT) {
                 return@setOnStateChangeListener
             }
 
-            when (cardAction) {
+            when (cardState) {
                 Reader.CARD_PRESENT -> { // 卡片插入
                     runOnMainThread {
                         callback?.onCardPresent()
                     }
 
-                    val result = try {
-                        val decoders = when (cardSlot) {
+                    val decoders = try {
+                        when (cardSlot) {
                             SMART_CARD_SLOT -> {
                                 require(usbDecoders.isNotEmpty()) { "The USB decoders must not be empty" }
                                 usbDecoders
@@ -77,42 +78,54 @@ public class AcsUsbDevice(
                             }
                             else -> emptyArray()
                         }
+                    } catch (e: Exception) {
+                        runOnMainThread {
+                            callback?.onReceiveResult(Result.failure(e))
+                        }
+                        return@setOnStateChangeListener
+                    }
 
-                        val responses = decoders.map {
-                            return@map try {
-                                val cardIsAvailable = powerOnCard(cardSlot)
+                    val failureResults = mutableListOf<Result<AcsResponseModel>>()
 
-                                if (cardIsAvailable) {
-                                    Result.success(it.decode(mReader))
-                                } else {
-                                    throw InvalidCardException()
-                                }
-                            } catch (e: Exception) {
-                                Log.e(it::class.java.simpleName, "Failed to decode", e)
-                                Result.failure(e)
+                    for (decoder in decoders) {
+                        val result = try {
+                            val cardIsAvailable = powerOnCard(cardSlot)
+
+                            if (cardIsAvailable) {
+                                Result.success(decoder.decode(mReader))
+                            } else {
+                                throw InvalidCardException()
+                            }
+                        } catch (e: Exception) {
+                            Log.e(decoder::class.java.simpleName, "Failed to decode", e)
+                            Result.failure(e)
+                        } finally {
+                            try {
+                                powerOffCard(cardSlot)
+                            } catch (ignored: Exception) {
+
                             }
                         }
 
-                        try {
-                            powerOffCard(cardSlot)
-                        } catch (ignored: Exception) {
+                        if (result.isSuccess) {
+                            runOnMainThread {
+                                callback?.onReceiveResult(result)
+                            }
 
+                            return@setOnStateChangeListener
+                        } else {
+                            failureResults.add(result)
                         }
-
-                        when (val response = responses.find { it.isSuccess }) {
-                            null -> Result.failure(
-                                NullResponseException(
-                                    cause = responses.find { it.isFailure }?.exceptionOrNull()
-                                )
-                            )
-                            else -> Result.success(response.getOrThrow())
-                        }
-                    } catch (e: Exception) {
-                        Result.failure(e)
                     }
 
                     runOnMainThread {
-                        callback?.onReceiveResult(result)
+                        callback?.onReceiveResult(
+                            Result.failure(
+                                NullResponseException(
+                                    cause = failureResults.firstOrNull()?.exceptionOrNull()
+                                )
+                            )
+                        )
                     }
                 }
                 Reader.CARD_ABSENT -> { // 卡片抽離

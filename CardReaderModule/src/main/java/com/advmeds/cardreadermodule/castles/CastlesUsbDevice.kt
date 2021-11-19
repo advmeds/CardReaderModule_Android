@@ -74,12 +74,12 @@ public class CastlesUsbDevice(private val context: Context) {
                                 } catch (e: Exception) {
                                     Log.e(this@CastlesUsbDevice::class.java.simpleName, "Failed to decode", e)
                                     Result.failure(e)
-                                }
+                                } finally {
+                                    try {
+                                        reader.powerOff()
+                                    } catch (ignored: Exception) {
 
-                                try {
-                                    reader.powerOff()
-                                } catch (ignored: Exception) {
-
+                                    }
                                 }
 
                                 runOnMainThread {
