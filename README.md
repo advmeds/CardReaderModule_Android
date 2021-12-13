@@ -174,3 +174,15 @@ public interface UsbDeviceCallback {
     fun onCardAbsent()
 }
 ```
+To cleans up and closes communication, add this in your onDestroy() method in your activity.
+
+```Kotlin
+acsUsbDevice.disconnect()
+ezUsbDevice.disconnect()
+
+try {
+    unregisterReceiver(usbReceiver)
+} catch (e: Exception) {
+    e.printStackTrace()
+}
+```
