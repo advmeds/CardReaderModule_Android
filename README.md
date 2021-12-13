@@ -72,23 +72,89 @@ Create an instance
 
 ```Kotlin
 val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+
+// For ACS USB Card Reader
 val acsUsbDevice = AcsUsbDevice(
     usbManager,
-    arrayOf(AcsUsbTWDecoder()),
-    arrayOf(AcsUsbNfcTWDecoder())
+    arrayOf(AcsUsbTWDecoder(), AcsUsbJPNDecoder(), AcsUsbThaiDecoder()),
+    arrayOf(AcsUsbNfcTWDecoder(), AcsUsbNfcTWMNDDecoder())
+)
+
+// For EZ100pu
+val ezUsbDevice = CastlesUsbDevice(context)
+```
+In your activity, you can obtain the UsbDevice that represents the attached device from AcsUsbDevice or CastlesUsbDevice like this:
+
+```Kotlin
+val device: UsbDevice? = acsUsbDevice.supportedDevice
+val device: UsbDevice? = ezUsbDevice.supportedDevice
+```
+Before communicating with the USB device, your application must have permission from your users.
+
+```Kotlin
+private val usbReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val usbDevice = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE) ?: return
+
+        when (intent.action) {
+            USB_PERMISSION -> {
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    // user choose YES for your previously popup window asking for grant perssion for this usb device
+                    when (usbDevice.productId) {
+                        acsUsbDevice.supportedDevice?.productId -> {
+                            acsUsbDevice.connectDevice(usbDevice)
+                        }
+                        ezUsbDevice.supportedDevice?.productId -> {
+                            ezUsbDevice.connectDevice(usbDevice)
+                        }
+                    }
+                } else {
+                    // user choose NO for your previously popup window asking for grant perssion for this usb device
+                }
+            }
+            UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+	        // To display the dialog that asks users for permission to connect to the device
+                val mPermissionIntent = PendingIntent.getBroadcast(
+		    this@YourActivity, 0, Intent(USB_PERMISSION), 0
+		)
+		
+		usbManager.requestPermission(usbDevice, mPermissionIntent)
+            }
+            UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+	    	// call your method that cleans up and closes communication with the device
+                when (usbDevice.productId) {
+                    acsUsbDevice.connectedDevice?.productId -> {
+                        acsUsbDevice.disconnect()
+                    }
+                    ezUsbDevice.connectedDevice?.productId -> {
+                        ezUsbDevice.disconnect()
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+To register the broadcast receiver, add this in your onCreate() method in your activity:
+
+```Kotlin
+private const val ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION"
+
+val filter = IntentFilter(USB_PERMISSION)
+filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+
+registerReceiver(
+    usbReceiver,
+    filter
 )
 ```
 
-Connect USB device. If you are so lazy, you can get USB device from the variable `supportedDevice`
+Implement the [`UsbDeviceCallback`](https://github.com/advmeds-service/CardReaderModule_Android/blob/main/CardReaderModule/src/main/java/com/advmeds/cardreadermodule/UsbDeviceCallback.kt)
 
 ```Kotlin
-acsUsbDevice.supportedDevice?.also { connectUSBDevice(it) }
-```
-
-Implement the [`AcsUsbCallback`](https://github.com/advmeds-service/CardReaderModule_Android/blob/main/CardReaderModule/src/main/java/com/advmeds/cardreadermodule/acs/usb/AcsUsbCallback.kt)
-
-```Kotlin
-public interface AcsUsbCallback {
+public interface UsbDeviceCallback {
     /** 成功連線上設備 */
     fun onConnectDevice()
 
