@@ -4,6 +4,7 @@ import com.acs.smartcard.Reader
 import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.sendControl
+import com.advmeds.cardreadermodule.acs.toHexString
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
@@ -24,14 +25,14 @@ public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
             READ_NFC_CARD_NO
         )
 
-        val resultString = convertNfcBytesToHex(response)
+        val resultString = response.toHexString()
 
-        if (resultString.contains("900000") && resultString.contains("414944")) {
-            val number = resultString.split("900000").first()
+        if (resultString.contains("9000") && resultString.contains("414944")) {
+            val number = resultString.split("9000").first()
 
             model.cardNo = number
-        } else if (resultString.contains("900000")) {
-            val number = resultString.split("900000").first()
+        } else if (resultString.contains("9000")) {
+            val number = resultString.split("9000").first()
 
             if (number.length >= 8) {
                 model.cardNo = number
@@ -39,19 +40,5 @@ public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
         }
 
         return model
-    }
-
-    private fun convertNfcBytesToHex(bytes: ByteArray): String {
-        val hexArray = "0123456789ABCDEF".toCharArray()
-
-        val hexChars = CharArray(bytes.size * 2)
-
-        for (index in bytes.indices) {
-            val v = bytes[index].toInt() and 0xFF
-            hexChars[index * 2] = hexArray[v ushr 4]
-            hexChars[index * 2 + 1] = hexArray[v and 0x0F]
-        }
-
-        return String(hexChars)
     }
 }
