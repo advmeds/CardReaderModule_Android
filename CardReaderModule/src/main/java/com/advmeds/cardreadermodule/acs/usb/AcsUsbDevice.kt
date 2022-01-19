@@ -30,7 +30,7 @@ public class AcsUsbDevice(
             field = WeakReference<UsbDeviceCallback>(value).get()
         }
 
-    /** 取得可支援的USB裝置 */
+    /** 取得已接上USB裝置列表中第一個可支援的USB裝置 */
     public val supportedDevice: UsbDevice?
         get() = mUsbManager.deviceList.values.find { mReader.isSupported(it) }
 
@@ -41,7 +41,7 @@ public class AcsUsbDevice(
     /**
      * 是否已連線
      *
-     * 目前發現連線成功後將之拔除，仍然會回傳已連線的問題。
+     * NOTE：目前發現若拔出已經連線成功的設備但是未呼叫 disconnect()，則該變數仍然會回傳true。
      */
     public val isConnected: Boolean
         get() = mReader.isOpened &&
