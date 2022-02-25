@@ -65,6 +65,19 @@ public class CastlesUsbDevice(private val context: Context) {
                 object : TimerTask() {
                     override fun run() {
                         if (this@CastlesUsbDevice.cardIsPresent != reader.cardIsPresented) {
+                            val stateString: (Boolean) -> String = {
+                                if (it) {
+                                    "Present"
+                                } else {
+                                    "Absent"
+                                }
+                            }
+
+                            Log.d(
+                                "Castles EZ100PU",
+                                "${stateString(this@CastlesUsbDevice.cardIsPresent)} -> ${stateString(reader.cardIsPresented)}"
+                            )
+
                             this@CastlesUsbDevice.cardIsPresent = reader.cardIsPresented
 
                             if (reader.cardIsPresented) {
