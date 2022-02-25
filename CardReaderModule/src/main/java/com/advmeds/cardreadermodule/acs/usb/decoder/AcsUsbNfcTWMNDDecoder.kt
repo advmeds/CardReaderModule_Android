@@ -6,7 +6,6 @@ import com.advmeds.cardreadermodule.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
-import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWMNDDecoder : AcsUsbBaseDecoder {
     companion object {
@@ -28,8 +27,8 @@ public class AcsUsbNfcTWMNDDecoder : AcsUsbBaseDecoder {
         )
     }
 
-    override fun decode(reader: Reader): AcsResponseModel {
-        reader.sendApdu(AcsUsbDevice.NFC_CARD_SLOT, READ_NFC_CARD_NO)
+    override fun decode(reader: Reader, slot: Int): AcsResponseModel {
+        reader.sendApdu(slot, READ_NFC_CARD_NO)
             .toHexString()
             .run {
                 if (!startsWith("9000")) {
@@ -37,7 +36,7 @@ public class AcsUsbNfcTWMNDDecoder : AcsUsbBaseDecoder {
                 }
             }
 
-        reader.sendApdu(AcsUsbDevice.NFC_CARD_SLOT, SELECT_NFC_CARD_NO)
+        reader.sendApdu(slot, SELECT_NFC_CARD_NO)
             .toHexString()
             .run {
                 if (!startsWith("9000")) {
@@ -49,7 +48,7 @@ public class AcsUsbNfcTWMNDDecoder : AcsUsbBaseDecoder {
             cardType = CardType.STAFF_CARD
         )
 
-        val response = reader.sendApdu(AcsUsbDevice.NFC_CARD_SLOT, READ_NFC_CARD_ONLY, 18)
+        val response = reader.sendApdu(slot, READ_NFC_CARD_ONLY, 18)
 
         // Transmit 讀取唯一識別卡號 success.
         if (response.toHexString().endsWith("9000")) {

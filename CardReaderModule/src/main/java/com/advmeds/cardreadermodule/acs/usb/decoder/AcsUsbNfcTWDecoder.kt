@@ -5,7 +5,6 @@ import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.AcsResponseModel.CardType
 import com.advmeds.cardreadermodule.acs.sendControl
 import com.advmeds.cardreadermodule.acs.toHexString
-import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
     companion object {
@@ -14,13 +13,13 @@ public class AcsUsbNfcTWDecoder : AcsUsbBaseDecoder {
         )
     }
 
-    override fun decode(reader: Reader): AcsResponseModel {
+    override fun decode(reader: Reader, slot: Int): AcsResponseModel {
         val model = AcsResponseModel(
             cardType = CardType.STAFF_CARD
         )
 
         val response = reader.sendControl(
-            AcsUsbDevice.NFC_CARD_SLOT,
+            slot,
             Reader.IOCTL_CCID_ESCAPE,
             READ_NFC_CARD_NO
         )

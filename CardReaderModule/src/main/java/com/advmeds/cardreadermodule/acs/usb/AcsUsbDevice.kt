@@ -19,8 +19,9 @@ public class AcsUsbDevice(
     private val nfcDecoders: Array<AcsUsbBaseDecoder> = emptyArray()
 ) {
     companion object {
-        public const val SMART_CARD_SLOT = 0
-        public const val NFC_CARD_SLOT = 1
+        private val stateStrings = arrayOf(
+            "Unknown", "Absent", "Present", "Swallowed", "Powered", "Negotiable", "Specific"
+        )
     }
 
     private val mReader = Reader(mUsbManager)
@@ -53,30 +54,51 @@ public class AcsUsbDevice(
 
     /** 設置Reader的Listener */
     private fun setupReader() {
-        mReader.setOnStateChangeListener { cardSlot, _, cardState ->
-            // 部分讀卡機在連線成功後，就算沒有插入卡片仍然會觸發插入的callback，並且cardSlot為2，
-            // 故過濾未知的cardSlot。
-            if (cardSlot != SMART_CARD_SLOT && cardSlot != NFC_CARD_SLOT) {
-                return@setOnStateChangeListener
-            }
+        mReader.setOnStateChangeListener { slotNum, prevState, currState ->
+            Log.d(
+                mReader.readerName,
+                "Slot $slotNum: ${stateStrings[prevState]} -> ${stateStrings[currState]}"
+            )
 
-            when (cardState) {
+            when (currState) {
                 Reader.CARD_PRESENT -> { // 卡片插入
                     runOnMainThread {
                         callback?.onCardPresent()
                     }
 
                     val decoders = try {
-                        when (cardSlot) {
-                            SMART_CARD_SLOT -> {
+                        when {
+                            mReader.readerName.startsWith("ACS ACR39U") -> {
                                 require(usbDecoders.isNotEmpty()) { "The USB decoders must not be empty" }
                                 usbDecoders
                             }
-                            NFC_CARD_SLOT -> {
+                            mReader.readerName.startsWith("ACS ACR1281U") -> {
+                                when (slotNum) {
+                                    0 -> {
+                                        // Smart card
+                                        require(usbDecoders.isNotEmpty()) { "The USB decoders must not be empty" }
+                                        usbDecoders
+                                    }
+                                    1 -> {
+                                        // NFC card
+                                        require(nfcDecoders.isNotEmpty()) { "The NFC decoders must not be empty" }
+                                        nfcDecoders
+                                    }
+                                    else -> {
+                                        return@setOnStateChangeListener
+                                    }
+                                }
+                            }
+                            mReader.readerName.startsWith("ACS ACR122U") ||
+                                    mReader.readerName.startsWith("ACS ACR1251T") -> {
                                 require(nfcDecoders.isNotEmpty()) { "The NFC decoders must not be empty" }
                                 nfcDecoders
                             }
-                            else -> emptyArray()
+                            else -> {
+                                val decoders = usbDecoders + nfcDecoders
+                                require(decoders.isNotEmpty()) { "The USB and NFC decoders must not be empty" }
+                                decoders
+                            }
                         }
                     } catch (e: Exception) {
                         runOnMainThread {
@@ -89,10 +111,10 @@ public class AcsUsbDevice(
 
                     for (decoder in decoders) {
                         val result = try {
-                            val cardIsAvailable = powerOnCard(cardSlot)
+                            val cardIsAvailable = powerOnCard(slotNum)
 
                             if (cardIsAvailable) {
-                                Result.success(decoder.decode(mReader))
+                                Result.success(decoder.decode(mReader, slotNum))
                             } else {
                                 throw InvalidCardException()
                             }
@@ -101,7 +123,7 @@ public class AcsUsbDevice(
                             Result.failure(e)
                         } finally {
                             try {
-                                powerOffCard(cardSlot)
+                                powerOffCard(slotNum)
                             } catch (ignored: Exception) {
 
                             }

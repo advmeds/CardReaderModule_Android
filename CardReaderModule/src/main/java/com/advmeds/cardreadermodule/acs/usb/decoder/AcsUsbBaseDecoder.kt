@@ -9,5 +9,5 @@ public interface AcsUsbBaseDecoder {
      * @param reader [com.acs.smartcard.Reader]
      * @return 資料模組 [AcsResponseModel]
      */
-    fun decode(reader: Reader): AcsResponseModel
+    fun decode(reader: Reader, slot: Int): AcsResponseModel
 }

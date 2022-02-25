@@ -5,7 +5,6 @@ import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
-import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 
 /** 用於解析馬來西亞ID Card */
 open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
@@ -87,8 +86,8 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             }
     }
 
-    override fun decode(reader: Reader): AcsResponseModel {
-        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, SELECT_JPN_APPLICATION)
+    override fun decode(reader: Reader, slot: Int): AcsResponseModel {
+        reader.sendApdu(slot, SELECT_JPN_APPLICATION)
             .toHexString()
             .run {
                 if (!endsWith("6105")) {
@@ -96,7 +95,7 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
                 }
             }
 
-        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, SELECT_APPLICATION_GET_RESPONSE)
+        reader.sendApdu(slot, SELECT_APPLICATION_GET_RESPONSE)
             .toHexString()
             .run {
                 if (!endsWith("9000")) {
@@ -108,9 +107,48 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             cardType = AcsResponseModel.CardType.HEALTH_CARD
         )
 
-        model.cardNo = readInfo(reader, ProfileColumn.IC_NO, true)
-        model.icId = readInfo(reader, ProfileColumn.IC_NO, true)
-        val name = readInfo(reader, ProfileColumn.KPT_NAME, true)
+        val readInfo: (ProfileColumn, Boolean) -> String = { column, convert ->
+            val setLengthCmd = SET_LENGTH
+                .plus(column.length)
+                .plus(0x00.toByte())
+
+            var respondStr = reader.sendApdu(slot, setLengthCmd).toHexString()
+
+            if (respondStr.endsWith("9108")) {
+                val selectInfoCmd = SELECT_INFO
+                    .plus(column.jpn)
+                    .plus(column.offset)
+                    .plus(column.length)
+                    .plus(0x00.toByte())
+
+                respondStr = reader.sendApdu(slot, selectInfoCmd).toHexString()
+
+                val readInfoCmd = READ_INFO
+                    .plus(column.length)
+
+                val response = reader.sendApdu(slot, readInfoCmd)
+
+                respondStr = response.toHexString()
+
+                if (respondStr.endsWith("9000")) {
+                    val responseWithoutCheckCode = response.copyOf(response.size - 2)
+
+                    if (convert) {
+                        String(responseWithoutCheckCode).trim()
+                    } else {
+                        responseWithoutCheckCode.toHexString()
+                    }
+                } else {
+                    ""
+                }
+            } else {
+                ""
+            }
+        }
+
+        model.cardNo = readInfo(ProfileColumn.IC_NO, true)
+        model.icId = readInfo(ProfileColumn.IC_NO, true)
+        val name = readInfo(ProfileColumn.KPT_NAME, true)
             .replace("\u0001", "") // 刪除開頭的 
             .replace("\u0004", "") // 刪除開頭的 
             .replace("\$", "") // 刪除開頭的 $
@@ -122,18 +160,18 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
             }
         }
         model.name = name.substring(0, endIndex)
-        model.gender = when (readInfo(reader, ProfileColumn.GENDER, true)) {
+        model.gender = when (readInfo(ProfileColumn.GENDER, true)) {
             "M", "L" -> AcsResponseModel.Gender.MALE
             "F", "P" -> AcsResponseModel.Gender.FEMALE
             else -> AcsResponseModel.Gender.UNKNOWN
         }
-        val cardBirth = readInfo(reader, ProfileColumn.DATE_OF_BIRTH, false).trim()
+        val cardBirth = readInfo(ProfileColumn.DATE_OF_BIRTH, false).trim()
         model.birthday = AcsResponseModel.DateBean(
             cardBirth.substring(0..3),
             cardBirth.substring(4..5),
             cardBirth.substring(6..7)
         )
-        val cardIssued = readInfo(reader, ProfileColumn.ISSUED_DATE, false).trim()
+        val cardIssued = readInfo(ProfileColumn.ISSUED_DATE, false).trim()
         model.issuedDate = AcsResponseModel.DateBean(
             cardIssued.substring(0..3),
             cardIssued.substring(4..5),
@@ -141,45 +179,6 @@ open class AcsUsbJPNDecoder : AcsUsbBaseDecoder {
         )
 
         return model
-    }
-
-    private fun readInfo(reader: Reader, column: ProfileColumn, convert: Boolean): String {
-        val setLengthCmd = SET_LENGTH
-            .plus(column.length)
-            .plus(0x00.toByte())
-
-        var respondStr = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, setLengthCmd).toHexString()
-
-        if (!respondStr.endsWith("9108")) {
-            return ""
-        }
-
-        val selectInfoCmd = SELECT_INFO
-            .plus(column.jpn)
-            .plus(column.offset)
-            .plus(column.length)
-            .plus(0x00.toByte())
-
-        respondStr = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, selectInfoCmd).toHexString()
-
-        val readInfoCmd = READ_INFO
-            .plus(column.length)
-
-        val response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, readInfoCmd)
-
-        respondStr = response.toHexString()
-
-        if (!respondStr.endsWith("9000")) {
-            return ""
-        }
-
-        val responseWithoutCheckCode = response.copyOf(response.size - 2)
-
-        return if (convert) {
-            String(responseWithoutCheckCode).trim()
-        } else {
-            responseWithoutCheckCode.toHexString()
-        }
     }
 }
 

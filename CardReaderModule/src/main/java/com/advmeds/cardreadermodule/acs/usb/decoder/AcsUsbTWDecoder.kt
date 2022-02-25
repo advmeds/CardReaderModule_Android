@@ -7,7 +7,6 @@ import com.advmeds.cardreadermodule.AcsResponseModel.Gender
 import com.advmeds.cardreadermodule.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
-import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import java.nio.charset.Charset
 
 /** 用於解析台灣健保卡 */
@@ -27,9 +26,9 @@ public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
         )
     }
 
-    override fun decode(reader: Reader): AcsResponseModel {
+    override fun decode(reader: Reader, slot: Int): AcsResponseModel {
         val activeProtocol = reader.setProtocol(
-            AcsUsbDevice.SMART_CARD_SLOT,
+            slot,
             Reader.PROTOCOL_T1
         )
 
@@ -37,7 +36,7 @@ public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
             throw DecodeErrorException("The active protocol is not equal T=1")
         }
 
-        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, SELECT_APDU)
+        reader.sendApdu(slot, SELECT_APDU)
             .toHexString()
             .run {
                 if (!startsWith("9000")) {
@@ -46,7 +45,7 @@ public class AcsUsbTWDecoder : AcsUsbBaseDecoder {
             }
 
         // Transmit: Read profile APDU
-        val response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, READ_PROFILE_APDU)
+        val response = reader.sendApdu(slot, READ_PROFILE_APDU)
 
         if (response.toHexString().startsWith("9000")) {
             throw DecodeErrorException("Transmit read profile error")

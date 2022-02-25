@@ -7,7 +7,6 @@ import com.advmeds.cardreadermodule.AcsResponseModel.Gender
 import com.advmeds.cardreadermodule.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.sendApdu
 import com.advmeds.cardreadermodule.acs.toHexString
-import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import java.nio.charset.Charset
 
 /** 用於解析泰國ID Card */
@@ -41,9 +40,9 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
         )
     }
 
-    override fun decode(reader: Reader): AcsResponseModel {
+    override fun decode(reader: Reader, slot: Int): AcsResponseModel {
         val activeProtocol = reader.setProtocol(
-            AcsUsbDevice.SMART_CARD_SLOT,
+            slot,
             Reader.PROTOCOL_TX
         )
 
@@ -51,7 +50,7 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
             throw DecodeErrorException("The active protocol is not equal T=0")
         }
 
-        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, SELECT_APDU_THAI)
+        reader.sendApdu(slot, SELECT_APDU_THAI)
             .toHexString()
             .run {
                 if (!startsWith("61")) {
@@ -59,7 +58,7 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
                 }
             }
 
-        reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, THAI_NATIONAL_ID)
+        reader.sendApdu(slot, THAI_NATIONAL_ID)
             .toHexString()
             .run {
                 if (!startsWith("610D")) {
@@ -71,7 +70,7 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
             cardType = CardType.HEALTH_CARD
         )
 
-        var response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, GET_RESPONSE_ID, 15)
+        var response = reader.sendApdu(slot, GET_RESPONSE_ID, 15)
 
         if (response.toHexString().endsWith("9000")) {
             val id = response.copyOf(response.size - 2)
@@ -80,10 +79,10 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
             model.icId = id.decodeToString()
         }
 
-        response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, THAI_PERSON_INFO)
+        response = reader.sendApdu(slot, THAI_PERSON_INFO)
 
         if (response.toHexString().startsWith("61D1")) {
-            response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, GET_RESPONSE_INFO, 211)
+            response = reader.sendApdu(slot, GET_RESPONSE_INFO, 211)
 
             if (response.toHexString().endsWith("9000")) {
                 val name = response.copyOf(90)
@@ -117,10 +116,10 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
                 model.gender = cardGender
             }
 
-            response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, THAI_ISSUE_EXPIRE)
+            response = reader.sendApdu(slot, THAI_ISSUE_EXPIRE)
 
             if (response.toHexString().startsWith("6112")) { // Transmit issued / expired date success.
-                response = reader.sendApdu(AcsUsbDevice.SMART_CARD_SLOT, GET_RESPONSE_DATE, 20)
+                response = reader.sendApdu(slot, GET_RESPONSE_DATE, 20)
 
                 if (response.toHexString().endsWith("9000")) {
                     // From Thai Year to A.D.
