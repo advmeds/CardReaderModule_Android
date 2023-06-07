@@ -56,4 +56,6 @@ dependencies {
 
     implementation project(":CardReaderModule")
     implementation files("libs/acsbt-1.0.1.aar")
+
+    implementation "com.jakewharton.timber:timber:5.0.1"
 }

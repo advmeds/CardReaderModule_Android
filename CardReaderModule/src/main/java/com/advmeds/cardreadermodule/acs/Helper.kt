@@ -1,6 +1,7 @@
 package com.advmeds.cardreadermodule.acs
 
 import com.acs.smartcard.Reader
+import timber.log.Timber
 import kotlin.experimental.xor
 
 /** Converts the byte array to HEX string. */
@@ -47,6 +48,8 @@ fun Reader.sendApdu(
     apdu: ByteArray,
     bufferSize: Int = DEFAULT_BUFFER_SIZE
 ): ByteArray {
+    Timber.d("ACS USB Card Reader transmit with - slotNum: $slotNum, data: ${apdu.toHexString()}")
+
     val buffer = ByteArray(bufferSize)
 
     val responseSize = transmit(
@@ -57,7 +60,9 @@ fun Reader.sendApdu(
         buffer.size
     )
 
-    return buffer.copyOf(responseSize)
+    return buffer.copyOf(responseSize).also {
+        Timber.d("ACS USB Card Reader receive: ${it.toHexString()}")
+    }
 }
 
 fun Reader.sendControl(
@@ -66,6 +71,8 @@ fun Reader.sendControl(
     apdu: ByteArray,
     bufferSize: Int = DEFAULT_BUFFER_SIZE
 ): ByteArray {
+    Timber.d("ACS USB Card Reader control with - slotNum: $slotNum, controlCode: $controlCode, data: ${apdu.toHexString()}")
+
     val buffer = ByteArray(bufferSize)
 
     val responseSize = control(
@@ -77,5 +84,7 @@ fun Reader.sendControl(
         buffer.size
     )
 
-    return buffer.copyOf(responseSize)
+    return buffer.copyOf(responseSize).also {
+        Timber.d("ACS USB Card Reader receive: ${it.toHexString()}")
+    }
 }

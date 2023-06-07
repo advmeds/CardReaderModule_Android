@@ -4,6 +4,7 @@ import android.hardware.usb.*
 import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.DecodeErrorException
 import com.advmeds.cardreadermodule.acs.toHexString
+import timber.log.Timber
 import java.nio.charset.Charset
 
 public class CastlesUsbCardReader(
@@ -221,6 +222,8 @@ public class CastlesUsbCardReader(
         slotNum: Int,
         apdu: ByteArray
     ): ByteArray {
+        Timber.d("Castles USB Card Reader transmit with - slotNum: $slotNum, data: ${apdu.toHexString()}")
+
         val spGetHealthIDCardCmd = ByteArray(apdu.size + 10)
         spGetHealthIDCardCmd[0] = 0x57
         spGetHealthIDCardCmd[1] = 0x00
@@ -234,7 +237,9 @@ public class CastlesUsbCardReader(
         spGetHealthIDCardCmd[9] = 0x00
         apdu.copyInto(spGetHealthIDCardCmd, 10)
 
-        return sendCommand(spGetHealthIDCardCmd)
+        return sendCommand(spGetHealthIDCardCmd).also {
+            Timber.d("Castles USB Card Reader receive: ${it.toHexString()}")
+        }
     }
 
     private fun sendCommand(
