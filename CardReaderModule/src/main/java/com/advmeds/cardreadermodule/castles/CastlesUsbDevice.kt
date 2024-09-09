@@ -7,6 +7,7 @@ import android.os.Handler
 import android.util.Log
 import com.advmeds.cardreadermodule.InvalidCardException
 import com.advmeds.cardreadermodule.UsbDeviceCallback
+import timber.log.Timber
 import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -94,7 +95,7 @@ public class CastlesUsbDevice(private val context: Context) {
                                         throw InvalidCardException()
                                     }
                                 } catch (e: Exception) {
-                                    Log.e(this@CastlesUsbDevice::class.java.simpleName, "Failed to decode", e)
+                                    Timber.e(e, "Failed to decode")
                                     Result.failure(e)
                                 } finally {
                                     try {

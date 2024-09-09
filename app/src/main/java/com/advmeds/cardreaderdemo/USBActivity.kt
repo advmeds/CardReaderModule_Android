@@ -17,6 +17,7 @@ import com.advmeds.cardreadermodule.UsbDeviceCallback
 import com.advmeds.cardreadermodule.acs.usb.AcsUsbDevice
 import com.advmeds.cardreadermodule.acs.usb.decoder.*
 import com.advmeds.cardreadermodule.castles.CastlesUsbDevice
+import com.advmeds.cardreadermodule.rfpro.RFProDevice
 import com.google.android.material.snackbar.Snackbar
 import java.text.SimpleDateFormat
 import java.util.*
@@ -141,6 +142,33 @@ class USBActivity : AppCompatActivity() {
         }
     }
 
+    var device: RFProDevice? = null
+    private val rfUsbCallCallback = object : UsbDeviceCallback {
+        override fun onConnectDevice() {
+            appendLog("${device?.moduleVersion} connecting")
+        }
+
+        override fun onFailToConnectDevice() {
+            appendLog("Failed to connect")
+        }
+
+        override fun onCardPresent() {
+            appendLog("The card is present")
+        }
+
+        override fun onReceiveResult(result: Result<AcsResponseModel>) {
+            result.onSuccess {
+                appendLog(it.toString())
+            }.onFailure {
+                appendLog(it.stackTraceToString())
+            }
+        }
+
+        override fun onCardAbsent() {
+            appendLog("The card is absent")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_usb)
@@ -169,6 +197,12 @@ class USBActivity : AppCompatActivity() {
             appendLog("${it.productName} is attached")
 
             connectUSBDevice(it)
+        }
+
+        RFProDevice(applicationContext).apply {
+            device = this
+            callback = rfUsbCallCallback
+            connect()
         }
     }
 
@@ -203,6 +237,7 @@ class USBActivity : AppCompatActivity() {
 
         acsUsbDevice.disconnect()
         ezUsbDevice.disconnect()
+        device?.disconnect()
 
         try {
             unregisterReceiver(detectUsbDeviceReceiver)

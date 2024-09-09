@@ -10,34 +10,9 @@ import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice
 import com.advmeds.cardreadermodule.acs.ble.AcsBaseDevice.AcsBleDeviceStatus
 import com.advmeds.cardreadermodule.acs.ble.decoder.AcsBleTWDecoder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.vise.baseble.ViseBle
-import com.vise.baseble.callback.scan.IScanCallback
-import com.vise.baseble.callback.scan.ScanCallback
-import com.vise.baseble.model.BluetoothLeDevice
-import com.vise.baseble.model.BluetoothLeDeviceStore
 import pub.devrel.easypermissions.EasyPermissions
 
 class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks  {
-
-    private val scanCallback: ScanCallback by lazy { ScanCallback(object : IScanCallback {
-
-        override fun onDeviceFound(bluetoothLeDevice: BluetoothLeDevice?) {
-
-            bluetoothLeDevice?.name ?: return
-
-            Log.d("IScanCallback", "onDeviceFound: $bluetoothLeDevice")
-
-            if (bluetoothLeDevice.name.startsWith("ACR3901U-S1")) {
-                ViseBle.getInstance().stopScan(scanCallback)
-
-                acsBaseDevice.connect(this@BluetoothActivity, bluetoothLeDevice.address)
-            }
-        }
-
-        override fun onScanFinish(bluetoothLeDeviceStore: BluetoothLeDeviceStore?) {}
-
-        override fun onScanTimeout() {}
-    }) }
 
     private val acsBaseDevice = AcsBaseDevice(arrayOf(AcsBleTWDecoder()))
 
@@ -99,12 +74,6 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
         requestBluetoothPermissions()
     }
 
-    override fun onPause() {
-        super.onPause()
-
-        if (scanCallback.isScanning) ViseBle.getInstance().stopScan(scanCallback)
-    }
-
     override fun onDestroy() {
         acsBaseDevice.disconnect()
 
@@ -120,7 +89,7 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
         )
 
         if (EasyPermissions.hasPermissions(this, *permissions)) {
-            startScan()
+            // TODO("start scan")
         } else {
             EasyPermissions.requestPermissions(
                 this,
@@ -129,12 +98,6 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
                 *permissions
             )
         }
-    }
-
-    // 開始掃描藍牙設備
-    private fun startScan() {
-        if (scanCallback.isScanning) return
-        ViseBle.getInstance().startScan(scanCallback)
     }
 
     override fun onRequestPermissionsResult(
@@ -147,7 +110,7 @@ class BluetoothActivity : AppCompatActivity(), EasyPermissions.PermissionCallbac
     }
 
     override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
-        startScan()
+
     }
 
     override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {

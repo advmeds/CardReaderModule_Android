@@ -12,15 +12,14 @@ import java.nio.charset.Charset
 /** 用於解析泰國ID Card */
 public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
     companion object {
+        /** Select/Reset */
         private val SELECT_APDU_THAI = byteArrayOf(
             0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(), 0x08.toByte(),
             0xA0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x54.toByte(),
             0x48.toByte(), 0x00.toByte(), 0x01.toByte()
         )
-        private val THAI_PERSON_INFO = byteArrayOf(
-            0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x11.toByte(), 0x02.toByte(),
-            0x00.toByte(), 0xD1.toByte()
-        )
+
+        /** Citizen ID */
         private val THAI_NATIONAL_ID = byteArrayOf(
             0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x04.toByte(), 0x02.toByte(),
             0x00.toByte(), 0x0D.toByte()
@@ -28,9 +27,26 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
         private val GET_RESPONSE_ID = byteArrayOf(
             0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x0D.toByte()
         )
+
+        /** FullName Thai + Eng + BirthDate + Sex */
+        private val THAI_PERSON_INFO = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x00.toByte(), 0x11.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0xD1.toByte()
+        )
         private val GET_RESPONSE_INFO = byteArrayOf(
             0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0xD1.toByte()
         )
+
+        /** Address */
+        private val THAI_PERSON_Address = byteArrayOf(
+            0x80.toByte(), 0xB0.toByte(), 0x15.toByte(), 0x79.toByte(), 0x02.toByte(),
+            0x00.toByte(), 0x64.toByte()
+        )
+        private val GET_RESPONSE_Address = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), 0x64.toByte()
+        )
+
+        /** issue/expire */
         private val THAI_ISSUE_EXPIRE = byteArrayOf(
             0x80.toByte(), 0xB0.toByte(), 0x01.toByte(), 0x67.toByte(), 0x02.toByte(),
             0x00.toByte(), 0x12.toByte()
@@ -144,5 +160,25 @@ public class AcsUsbThaiDecoder : AcsUsbBaseDecoder {
         }
 
         return model
+    }
+
+    private fun sendCommand(reader: Reader, slot: Int, commandAPUD: ByteArray): ByteArray {
+        val result = reader.sendApdu(slot, commandAPUD).also {
+            require(it.size >= 2)
+
+            val sw1 = it.getOrNull(it.size - 2)
+
+            require(sw1 == 0x61.toByte())
+        }
+
+        val le = result[result.size - 1]
+
+        val responseAPDU = byteArrayOf(
+            0x00.toByte(), 0xC0.toByte(), 0x00.toByte(), 0x00.toByte(), le
+        )
+
+        val response = requireNotNull(reader.sendApdu(slot, responseAPDU).takeIf { it.toHexString().endsWith("9000") })
+
+        return response.copyOf(response.size - 2)
     }
 }
