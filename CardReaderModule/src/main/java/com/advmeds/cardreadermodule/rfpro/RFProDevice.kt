@@ -1,6 +1,8 @@
 package com.advmeds.cardreadermodule.rfpro
 
 import android.content.Context
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
 import android.os.Handler
 import com.advmeds.cardreadermodule.AcsResponseModel
 import com.advmeds.cardreadermodule.DecodeErrorException
@@ -30,7 +32,13 @@ class RFProDevice(private val context: Context) {
             0x00.toByte(), 0xca.toByte(), 0x11.toByte(), 0x00.toByte(), 0x02.toByte(),
             0x00.toByte(), 0x00.toByte()
         )
+
+        /** 是否為C2讀卡機 */
+        public fun isSupported(device: UsbDevice) =
+            device.vendorId == 0x0471 && device.productId == 0xA112
     }
+
+    private val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
 
     private var cardIsPresent: Boolean = false
     private var timer: Timer? = null
@@ -39,6 +47,10 @@ class RFProDevice(private val context: Context) {
         set(value) {
             field = WeakReference<UsbDeviceCallback>(value).get()
         }
+
+    /** 取得已接上USB裝置列表中第一個可支援的USB裝置 */
+    public val supportedDevice: UsbDevice?
+        get() = usbManager.deviceList.values.find { isSupported(it) }
 
     /** 是否已連線 */
     public val isConnected: Boolean
@@ -68,9 +80,9 @@ class RFProDevice(private val context: Context) {
             val getVerResult = comproCall.lc_getver(icdev, pModVer)
 
             if (getVerResult == 0) {
-                Timber.d("Module Version: ${String(pModVer)}")
-
-                moduleVersion = String(pModVer).replace("\u0000", "")
+                moduleVersion = String(pModVer).replace("\u0000", "").apply {
+                    Timber.d("Module Version: $this")
+                }
 
                 callback?.onConnectDevice()
 
@@ -197,6 +209,7 @@ class RFProDevice(private val context: Context) {
         comproCall.lc_exit(icdev)
         cardIsPresent = false
         moduleVersion = null
+        hdev = null
     }
 
     /** 測試用指令 */

@@ -124,7 +124,11 @@ class USBActivity : AppCompatActivity() {
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
                     appendLog("${usbDevice.productName} is attached")
 
-                    connectUSBDevice(usbDevice)
+                    if (RFProDevice.isSupported(usbDevice)) {
+                        device.connect()
+                    } else {
+                        connectUSBDevice(usbDevice)
+                    }
                 }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
                     appendLog("${usbDevice.productName} is detached")
@@ -137,15 +141,21 @@ class USBActivity : AppCompatActivity() {
                             ezUsbDevice.disconnect()
                         }
                     }
+
+                    if (RFProDevice.isSupported(usbDevice)) {
+                        device.disconnect()
+                    }
                 }
             }
         }
     }
 
-    var device: RFProDevice? = null
+    private val device by lazy {
+        RFProDevice(applicationContext)
+    }
     private val rfUsbCallCallback = object : UsbDeviceCallback {
         override fun onConnectDevice() {
-            appendLog("${device?.moduleVersion} connecting")
+            appendLog("${device.moduleVersion} connecting")
         }
 
         override fun onFailToConnectDevice() {
@@ -199,10 +209,9 @@ class USBActivity : AppCompatActivity() {
             connectUSBDevice(it)
         }
 
-        RFProDevice(applicationContext).apply {
-            device = this
-            callback = rfUsbCallCallback
-            connect()
+        device.callback = rfUsbCallCallback
+        device.supportedDevice?.also {
+            device.connect()
         }
     }
 
@@ -237,7 +246,7 @@ class USBActivity : AppCompatActivity() {
 
         acsUsbDevice.disconnect()
         ezUsbDevice.disconnect()
-        device?.disconnect()
+        device.disconnect()
 
         try {
             unregisterReceiver(detectUsbDeviceReceiver)
